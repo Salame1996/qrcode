@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QR CODE</title>
+  </head>
+  <body>
+    <div class="title">
+      <h1 class="cursive">QR Code Generator &#128187 &#128242</h1>
+      <h2>Insert Link to generate QR Code</h2>
+    </div>
+    <div>
+    <form action="/" method="POST">
+      <input type="text" name="link" placeholder="Place your link here!"/>
+      <button type="submit">Generate QR CODE</button>
+    </form>
+</div>
+    <div class="generated">
+      <img src="{{data}}" alt="" />
+    </div>
+  </body>
+</html>
+
+<style>
+    body {
+      background-color: black;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh; /* Ensure the body takes up the full height of the viewport */
+      margin: 0; /* Remove default margin */
+    }
+
+    .title {
+      text-align: center;
+      margin-bottom: 20px; /* Add some spacing below the title */
+    }
+
+    h1, h2, p {
+      color: white;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px; /* Add some spacing below the form */
+    }
+
+    form input {
+      margin-bottom: 10px; /* Add spacing between input and button */
+    }
+
+    .generated {
+      text-align: center;
+    }
+
+    img {
+      max-width: 100%; /* Make sure the image doesn't exceed its container */
+      height: auto;
+    }
+  </style>
