@@ -6,6 +6,21 @@
     <title>QR Studio — Modern QR Code Generator</title>
     <meta name="description" content="Generate beautiful, high-resolution QR codes instantly." />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%E2%9A%A1</text></svg>" />
+
+    <!-- ===================== GOOGLE ADSENSE SETUP =====================
+         1. Get approved at https://adsense.google.com and add this site.
+         2. Create two display ad units: one "vertical" (side) and one
+            "horizontal/responsive" (bottom). Copy their slot IDs.
+         3. Fill in the three values below. Until then, tidy placeholder
+            boxes show instead — no console errors, nothing to break.
+    ================================================================= -->
+    <script>
+      window.ADSENSE = {
+        client: "",       // your publisher ID, e.g. "ca-pub-1234567890123456"
+        sideSlot: "",     // ad unit ID for the right-hand skyscraper
+        bottomSlot: "",   // ad unit ID for the bottom banner
+      };
+    </script>
     <style>
       :root {
         --bg-0: #0b0c1a;
@@ -241,6 +256,59 @@
       .foot { margin-top: 22px; font-size: 12px; color: #6b6f93; text-align: center; }
       .foot code { color: var(--muted); }
 
+      /* ad layout: centered card + side rail + bottom banner */
+      .stage {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        width: 100%;
+      }
+      .ad-rail { display: none; }
+      @media (min-width: 1240px) { .ad-rail { display: flex; align-items: center; } }
+
+      .ad-box {
+        position: relative;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.22);
+        border: 1px dashed var(--border);
+        overflow: hidden;
+      }
+      .ad-box:not(.wide) { width: 160px; height: 600px; }
+      .ad-box.wide { width: 100%; max-width: 728px; min-height: 90px; }
+
+      .ad-fallback { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #6b6f93; text-align: center; }
+      .ad-fallback strong { color: var(--muted); font-size: 13px; }
+      .ad-fallback span { font-size: 11px; }
+
+      /* AdSense units stay hidden until a publisher ID is configured */
+      .adsbygoogle { display: none; }
+
+      .ad-bottom {
+        position: fixed; left: 0; right: 0; bottom: 0;
+        z-index: 40;
+        display: flex; align-items: center; justify-content: center;
+        padding: 10px 44px;
+        background: rgba(8, 9, 20, 0.72);
+        border-top: 1px solid var(--border);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+      .ad-bottom.hide { display: none; }
+      .ad-bottom-close {
+        position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+        width: 26px; height: 26px; line-height: 1; font-size: 18px;
+        color: var(--muted); background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+      }
+      .ad-bottom-close:hover { background: rgba(255, 255, 255, 0.12); color: var(--text); }
+
+      body { padding-bottom: 130px; }
+
       /* ad interstitial modal */
       .ad-overlay {
         position: fixed;
@@ -309,6 +377,7 @@
     <div class="orb a"></div>
     <div class="orb b"></div>
 
+    <div class="stage">
     <main class="shell">
       <section class="controls">
         <span class="badge">⚡ QR Studio</span>
@@ -364,6 +433,24 @@
         <div class="foot">Built with Flask &amp; the <code>qrcode</code> library</div>
       </section>
     </main>
+
+      <!-- Right-hand skyscraper (Google AdSense) — hidden on small screens -->
+      <aside class="ad-rail">
+        <div class="ad-box">
+          <ins class="adsbygoogle side-ad" style="display:inline-block;width:160px;height:600px" data-ad-slot=""></ins>
+          <div class="ad-fallback"><strong>Ad space</strong><span>160 × 600</span></div>
+        </div>
+      </aside>
+    </div><!-- /.stage -->
+
+    <!-- Bottom banner (Google AdSense) -->
+    <div class="ad-bottom" id="ad-bottom">
+      <button type="button" class="ad-bottom-close" id="ad-bottom-close" aria-label="Hide ad">&times;</button>
+      <div class="ad-box wide">
+        <ins class="adsbygoogle bottom-ad" style="display:block" data-ad-format="horizontal" data-full-width-responsive="true" data-ad-slot=""></ins>
+        <div class="ad-fallback"><strong>Ad space</strong><span>Responsive banner</span></div>
+      </div>
+    </div>
 
     <!-- Ad interstitial shown when the user clicks Generate -->
     <div class="ad-overlay" id="ad-overlay" aria-hidden="true">
@@ -531,6 +618,44 @@
         download.classList.remove("disabled");
         copyBtn.classList.remove("disabled");
       }
+
+      // Dismiss the bottom banner.
+      const adBottom = document.getElementById("ad-bottom");
+      document.getElementById("ad-bottom-close").addEventListener("click", () => {
+        adBottom.classList.add("hide");
+        document.body.style.paddingBottom = "40px";
+      });
+
+      // Activate Google AdSense only when a publisher ID has been set.
+      (function initAdsense() {
+        const cfg = window.ADSENSE || {};
+        if (!cfg.client) return; // dev mode: keep the placeholder boxes
+
+        document.querySelectorAll(".ad-fallback").forEach((el) => (el.style.display = "none"));
+
+        const loader = document.createElement("script");
+        loader.async = true;
+        loader.crossOrigin = "anonymous";
+        loader.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + cfg.client;
+        document.head.appendChild(loader);
+
+        const side = document.querySelector(".side-ad");
+        if (side && cfg.sideSlot) {
+          side.setAttribute("data-ad-client", cfg.client);
+          side.setAttribute("data-ad-slot", cfg.sideSlot);
+          side.style.display = "inline-block";
+        }
+        const bottom = document.querySelector(".bottom-ad");
+        if (bottom && cfg.bottomSlot) {
+          bottom.setAttribute("data-ad-client", cfg.client);
+          bottom.setAttribute("data-ad-slot", cfg.bottomSlot);
+          bottom.style.display = "block";
+        }
+
+        document.querySelectorAll(".adsbygoogle").forEach(() => {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+        });
+      })();
     </script>
   </body>
 </html>
