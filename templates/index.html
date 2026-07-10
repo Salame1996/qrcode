@@ -6,21 +6,7 @@
     <title>QR Studio — Modern QR Code Generator</title>
     <meta name="description" content="Generate beautiful, high-resolution QR codes instantly." />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%E2%9A%A1</text></svg>" />
-
-    <!-- ===================== GOOGLE ADSENSE SETUP =====================
-         1. Get approved at https://adsense.google.com and add this site.
-         2. Create two display ad units: one "vertical" (side) and one
-            "horizontal/responsive" (bottom). Copy their slot IDs.
-         3. Fill in the three values below. Until then, tidy placeholder
-            boxes show instead — no console errors, nothing to break.
-    ================================================================= -->
-    <script>
-      window.ADSENSE = {
-        client: "",       // your publisher ID, e.g. "ca-pub-1234567890123456"
-        sideSlot: "",     // ad unit ID for the right-hand skyscraper
-        bottomSlot: "",   // ad unit ID for the bottom banner
-      };
-    </script>
+    {% if adsense_client %}<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_client }}" crossorigin="anonymous"></script>{% endif %}
     <style>
       :root {
         --bg-0: #0b0c1a;
@@ -50,7 +36,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: flex-start;
-        padding: 32px 20px 130px;
+        padding: 32px 20px;
       }
 
       /* floating ambient orbs */
@@ -257,57 +243,16 @@
       .foot { margin-top: 22px; font-size: 12px; color: #6b6f93; text-align: center; }
       .foot code { color: var(--muted); }
 
-      /* ad layout: centered card + side rail + bottom banner */
+      /* centered card stage */
       .stage {
         position: relative;
         z-index: 1;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 24px;
         width: 100%;
         min-height: 78vh;
       }
-      .ad-rail { display: none; }
-      @media (min-width: 1240px) { .ad-rail { display: flex; align-items: center; } }
-
-      .ad-box {
-        position: relative;
-        display: flex; align-items: center; justify-content: center;
-        border-radius: 14px;
-        background: rgba(0, 0, 0, 0.22);
-        border: 1px dashed var(--border);
-        overflow: hidden;
-      }
-      .ad-box:not(.wide) { width: 160px; height: 600px; }
-      .ad-box.wide { width: 100%; max-width: 728px; min-height: 90px; }
-
-      .ad-fallback { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #6b6f93; text-align: center; }
-      .ad-fallback strong { color: var(--muted); font-size: 13px; }
-      .ad-fallback span { font-size: 11px; }
-
-      /* AdSense units stay hidden until a publisher ID is configured */
-      .adsbygoogle { display: none; }
-
-      .ad-bottom {
-        position: fixed; left: 0; right: 0; bottom: 0;
-        z-index: 40;
-        display: flex; align-items: center; justify-content: center;
-        padding: 10px 44px;
-        background: rgba(8, 9, 20, 0.72);
-        border-top: 1px solid var(--border);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-      }
-      .ad-bottom.hide { display: none; }
-      .ad-bottom-close {
-        position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-        width: 26px; height: 26px; line-height: 1; font-size: 18px;
-        color: var(--muted); background: rgba(255, 255, 255, 0.06);
-        border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
-        transition: background 0.2s, color 0.2s;
-      }
-      .ad-bottom-close:hover { background: rgba(255, 255, 255, 0.12); color: var(--text); }
 
       /* homepage content sections */
       .content { position: relative; z-index: 1; width: 100%; max-width: 940px; margin: 0 auto; }
@@ -353,69 +298,6 @@
       .site-footer a { color: var(--muted); text-decoration: none; font-size: 14px; }
       .site-footer a:hover { color: var(--text); }
       .site-footer .copy { color: #6b6f93; font-size: 13px; }
-
-      /* ad interstitial modal */
-      .ad-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 50;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        background: rgba(6, 7, 18, 0.72);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-      }
-      .ad-overlay.show { display: flex; animation: fade 0.25s ease both; }
-      @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
-
-      .ad-modal {
-        width: 100%;
-        max-width: 360px;
-        background: var(--bg-1);
-        border: 1px solid var(--border);
-        border-radius: 20px;
-        padding: 18px;
-        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
-        animation: rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-      }
-
-      .ad-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-      .ad-tag {
-        font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-        color: var(--muted); background: rgba(255, 255, 255, 0.06);
-        border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px;
-      }
-      .ad-close {
-        width: 28px; height: 28px; line-height: 1;
-        font-size: 20px; color: var(--muted);
-        background: transparent; border: none; border-radius: 8px; cursor: pointer;
-        transition: background 0.2s, color 0.2s;
-      }
-      .ad-close:hover { background: rgba(255, 255, 255, 0.08); color: var(--text); }
-
-      .ad-slot {
-        min-height: 250px;
-        display: flex; align-items: center; justify-content: center;
-        border-radius: 14px;
-        background: rgba(0, 0, 0, 0.25);
-        border: 1px dashed var(--border);
-        overflow: hidden;
-      }
-      .ad-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #6b6f93; }
-      .ad-placeholder strong { color: var(--muted); font-size: 15px; }
-      .ad-placeholder span { font-size: 12px; }
-
-      .ad-continue {
-        width: 100%; margin-top: 16px;
-        padding: 13px 18px; font-size: 14px; font-weight: 700;
-        color: #fff; border: none; border-radius: 12px; cursor: pointer;
-        background: linear-gradient(120deg, var(--accent), var(--accent-2));
-        transition: opacity 0.2s, transform 0.15s;
-      }
-      .ad-continue:hover:not(:disabled) { transform: translateY(-1px); }
-      .ad-continue:disabled { opacity: 0.5; cursor: default; }
     </style>
   </head>
   <body>
@@ -478,14 +360,6 @@
         <div class="foot">Built with Flask &amp; the <code>qrcode</code> library</div>
       </section>
     </main>
-
-      <!-- Right-hand skyscraper (Google AdSense) — hidden on small screens -->
-      <aside class="ad-rail">
-        <div class="ad-box">
-          <ins class="adsbygoogle side-ad" style="display:inline-block;width:160px;height:600px" data-ad-slot=""></ins>
-          <div class="ad-fallback"><strong>Ad space</strong><span>160 × 600</span></div>
-        </div>
-      </aside>
     </div><!-- /.stage -->
 
     <div class="content">
@@ -570,42 +444,6 @@
       <div class="copy">© 2026 QR Studio</div>
     </footer>
 
-    <!-- Bottom banner (Google AdSense) -->
-    <div class="ad-bottom" id="ad-bottom">
-      <button type="button" class="ad-bottom-close" id="ad-bottom-close" aria-label="Hide ad">&times;</button>
-      <div class="ad-box wide">
-        <ins class="adsbygoogle bottom-ad" style="display:block" data-ad-format="horizontal" data-full-width-responsive="true" data-ad-slot=""></ins>
-        <div class="ad-fallback"><strong>Ad space</strong><span>Responsive banner</span></div>
-      </div>
-    </div>
-
-    <!-- Ad interstitial shown when the user clicks Generate -->
-    <div class="ad-overlay" id="ad-overlay" aria-hidden="true">
-      <div class="ad-modal" role="dialog" aria-modal="true" aria-label="Advertisement">
-        <div class="ad-head">
-          <span class="ad-tag">Advertisement</span>
-          <button type="button" class="ad-close" id="ad-close" aria-label="Close">&times;</button>
-        </div>
-
-        <!-- ===== DROP YOUR REAL AD CODE HERE =====
-             Replace the placeholder below with your ad network snippet,
-             e.g. a Google AdSense <ins class="adsbygoogle" ...> block, and
-             call (adsbygoogle = window.adsbygoogle || []).push({}) in the
-             showAd() function. Recommended slot size: 300x250. -->
-        <div class="ad-slot" id="ad-slot">
-          <div class="ad-placeholder">
-            <strong>Your ad here</strong>
-            <span>300 × 250 ad unit</span>
-          </div>
-        </div>
-        <!-- ===== END AD CODE ===== -->
-
-        <button type="button" class="ad-continue" id="ad-continue" disabled>
-          <span id="ad-continue-text">Preparing your QR code…</span>
-        </button>
-      </div>
-    </div>
-
     <script>
       const form = document.getElementById("qr-form");
       const linkInput = document.getElementById("link");
@@ -619,86 +457,8 @@
       const download = document.getElementById("download");
       const copyBtn = document.getElementById("copy");
 
-      // Ad interstitial elements
-      const adOverlay = document.getElementById("ad-overlay");
-      const adClose = document.getElementById("ad-close");
-      const adContinue = document.getElementById("ad-continue");
-      const adContinueText = document.getElementById("ad-continue-text");
-      const AD_SECONDS = 4; // how long the ad shows before "Continue" unlocks
-
       fill.addEventListener("input", () => (document.getElementById("fill-label").textContent = fill.value));
       back.addEventListener("input", () => (document.getElementById("back-label").textContent = back.value));
-
-      let pendingImage = null;   // QR data URI generated while the ad is showing
-      let adTimer = null;
-
-      // Ask the server for the QR image (no UI side effects — just returns the data URI).
-      async function fetchQr() {
-        const data = linkInput.value.trim();
-        const res = await fetch("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ link: data, fill: fill.value, back: back.value }),
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Something went wrong.");
-        return json.image;
-      }
-
-      // Paint a generated QR into the preview panel.
-      function renderQr(image) {
-        img.src = image;
-        img.classList.remove("show");
-        void img.offsetWidth; // restart the pop animation
-        img.classList.add("show");
-        placeholder.classList.add("hide");
-
-        download.href = image;
-        download.classList.remove("disabled");
-        copyBtn.classList.remove("disabled");
-      }
-
-      function openAd() {
-        adOverlay.classList.add("show");
-        adOverlay.setAttribute("aria-hidden", "false");
-        adContinue.disabled = true;
-
-        // --- If you use a real ad network, initialise the ad unit here. ---
-        // e.g. (adsbygoogle = window.adsbygoogle || []).push({});
-
-        let remaining = AD_SECONDS;
-        adContinueText.textContent = `Continue in ${remaining}…`;
-        clearInterval(adTimer);
-        adTimer = setInterval(() => {
-          remaining -= 1;
-          if (remaining > 0) {
-            adContinueText.textContent = `Continue in ${remaining}…`;
-          } else {
-            clearInterval(adTimer);
-            unlockContinue();
-          }
-        }, 1000);
-      }
-
-      function unlockContinue() {
-        // Only enable the button once the QR is actually ready.
-        if (pendingImage) {
-          adContinue.disabled = false;
-          adContinueText.textContent = "Show my QR code →";
-        } else {
-          adContinueText.textContent = "Preparing your QR code…";
-        }
-      }
-
-      function closeAd(reveal) {
-        clearInterval(adTimer);
-        adOverlay.classList.remove("show");
-        adOverlay.setAttribute("aria-hidden", "true");
-        if (reveal && pendingImage) renderQr(pendingImage);
-        pendingImage = null;
-        submitBtn.disabled = false;
-        spinner.classList.remove("show");
-      }
 
       async function generate() {
         const data = linkInput.value.trim();
@@ -707,25 +467,34 @@
 
         submitBtn.disabled = true;
         spinner.classList.add("show");
-        pendingImage = null;
-        openAd();
 
         try {
-          pendingImage = await fetchQr();
-          // If the countdown already finished while we were fetching, unlock now.
-          if (!adOverlay.classList.contains("show")) return;
-          if (adContinueText.textContent.startsWith("Preparing")) unlockContinue();
-          else if (adContinue.disabled === false) adContinueText.textContent = "Show my QR code →";
+          const res = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ link: data, fill: fill.value, back: back.value }),
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || "Something went wrong.");
+
+          img.src = json.image;
+          img.classList.remove("show");
+          void img.offsetWidth; // restart the pop animation
+          img.classList.add("show");
+          placeholder.classList.add("hide");
+
+          download.href = json.image;
+          download.classList.remove("disabled");
+          copyBtn.classList.remove("disabled");
         } catch (err) {
           errorEl.textContent = err.message;
-          closeAd(false);
+        } finally {
+          spinner.classList.remove("show");
+          submitBtn.disabled = false;
         }
       }
 
       form.addEventListener("submit", (e) => { e.preventDefault(); generate(); });
-      adContinue.addEventListener("click", () => closeAd(true));
-      adClose.addEventListener("click", () => closeAd(true));
-      adOverlay.addEventListener("click", (e) => { if (e.target === adOverlay) closeAd(true); });
 
       copyBtn.addEventListener("click", async () => {
         try {
@@ -745,44 +514,6 @@
         download.classList.remove("disabled");
         copyBtn.classList.remove("disabled");
       }
-
-      // Dismiss the bottom banner.
-      const adBottom = document.getElementById("ad-bottom");
-      document.getElementById("ad-bottom-close").addEventListener("click", () => {
-        adBottom.classList.add("hide");
-        document.body.style.paddingBottom = "40px";
-      });
-
-      // Activate Google AdSense only when a publisher ID has been set.
-      (function initAdsense() {
-        const cfg = window.ADSENSE || {};
-        if (!cfg.client) return; // dev mode: keep the placeholder boxes
-
-        document.querySelectorAll(".ad-fallback").forEach((el) => (el.style.display = "none"));
-
-        const loader = document.createElement("script");
-        loader.async = true;
-        loader.crossOrigin = "anonymous";
-        loader.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + cfg.client;
-        document.head.appendChild(loader);
-
-        const side = document.querySelector(".side-ad");
-        if (side && cfg.sideSlot) {
-          side.setAttribute("data-ad-client", cfg.client);
-          side.setAttribute("data-ad-slot", cfg.sideSlot);
-          side.style.display = "inline-block";
-        }
-        const bottom = document.querySelector(".bottom-ad");
-        if (bottom && cfg.bottomSlot) {
-          bottom.setAttribute("data-ad-client", cfg.client);
-          bottom.setAttribute("data-ad-slot", cfg.bottomSlot);
-          bottom.style.display = "block";
-        }
-
-        document.querySelectorAll(".adsbygoogle").forEach(() => {
-          (window.adsbygoogle = window.adsbygoogle || []).push({});
-        });
-      })();
     </script>
   </body>
 </html>

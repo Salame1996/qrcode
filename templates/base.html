@@ -6,6 +6,7 @@
     <title>{% block title %}QR Studio{% endblock %}</title>
     <meta name="description" content="{% block description %}Generate beautiful, high-resolution QR codes instantly.{% endblock %}" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%E2%9A%A1</text></svg>" />
+    {% if adsense_client %}<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_client }}" crossorigin="anonymous"></script>{% endif %}
     <style>
       :root {
         --bg-0: #0b0c1a;
