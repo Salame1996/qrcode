@@ -2,65 +2,398 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>QR CODE</title>
+    <title>QR Studio — Modern QR Code Generator</title>
+    <meta name="description" content="Generate beautiful, high-resolution QR codes instantly." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%E2%9A%A1</text></svg>" />
+    <style>
+      :root {
+        --bg-0: #0b0c1a;
+        --bg-1: #12132a;
+        --card: rgba(255, 255, 255, 0.06);
+        --border: rgba(255, 255, 255, 0.12);
+        --text: #eef0ff;
+        --muted: #a4a8c9;
+        --accent: #7c5cff;
+        --accent-2: #22d3ee;
+        --radius: 20px;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body { height: 100%; }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text);
+        background: radial-gradient(1200px 800px at 15% -10%, #241b4d 0%, transparent 55%),
+                    radial-gradient(1000px 700px at 100% 0%, #10344a 0%, transparent 50%),
+                    linear-gradient(160deg, var(--bg-0), var(--bg-1));
+        min-height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 20px;
+      }
+
+      /* floating ambient orbs */
+      .orb {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(60px);
+        opacity: 0.5;
+        z-index: 0;
+        animation: float 14s ease-in-out infinite;
+      }
+      .orb.a { width: 320px; height: 320px; background: #7c5cff; top: -80px; left: -60px; }
+      .orb.b { width: 280px; height: 280px; background: #22d3ee; bottom: -90px; right: -50px; animation-delay: -6s; }
+
+      @keyframes float {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(30px, -20px) scale(1.08); }
+      }
+
+      .shell {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 940px;
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 28px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: calc(var(--radius) + 8px);
+        padding: 36px;
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        animation: rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      }
+
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(24px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @media (max-width: 760px) {
+        .shell { grid-template-columns: 1fr; padding: 24px; }
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--accent-2);
+        background: rgba(34, 211, 238, 0.1);
+        border: 1px solid rgba(34, 211, 238, 0.25);
+        padding: 6px 12px;
+        border-radius: 999px;
+      }
+
+      h1 {
+        font-size: clamp(28px, 4vw, 40px);
+        line-height: 1.1;
+        margin: 18px 0 8px;
+        letter-spacing: -0.02em;
+        background: linear-gradient(120deg, #fff, #b9a8ff 60%, #7fe6ff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      p.sub { color: var(--muted); margin: 0 0 26px; font-size: 15px; line-height: 1.5; }
+
+      label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 8px; }
+
+      .field { margin-bottom: 18px; }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 14px 16px;
+        font-size: 15px;
+        color: var(--text);
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      }
+      input[type="text"]::placeholder { color: #6b6f93; }
+      input[type="text"]:focus {
+        border-color: var(--accent);
+        background: rgba(0, 0, 0, 0.35);
+        box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.18);
+      }
+
+      .row { display: flex; gap: 14px; }
+      .row .field { flex: 1; }
+
+      .color-field { display: flex; align-items: center; gap: 10px; }
+      input[type="color"] {
+        width: 44px; height: 44px; padding: 0;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: transparent;
+        cursor: pointer;
+      }
+      input[type="color"]::-webkit-color-swatch-wrapper { padding: 4px; }
+      input[type="color"]::-webkit-color-swatch { border: none; border-radius: 8px; }
+      .color-field span { font-size: 13px; color: var(--muted); }
+
+      .slider-val { color: var(--text); font-weight: 600; }
+      input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+
+      button.primary {
+        width: 100%;
+        margin-top: 6px;
+        padding: 15px 20px;
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+        border: none;
+        border-radius: 14px;
+        cursor: pointer;
+        background: linear-gradient(120deg, var(--accent), #a855f7 55%, var(--accent-2));
+        background-size: 180% 180%;
+        box-shadow: 0 12px 30px rgba(124, 92, 255, 0.35);
+        transition: transform 0.15s ease, box-shadow 0.2s ease, background-position 0.6s ease;
+      }
+      button.primary:hover { transform: translateY(-2px); background-position: 100% 0; box-shadow: 0 16px 40px rgba(124, 92, 255, 0.5); }
+      button.primary:active { transform: translateY(0); }
+      button.primary:disabled { opacity: 0.6; cursor: progress; }
+
+      .error { color: #ff8b9a; font-size: 13px; margin-top: 12px; min-height: 16px; }
+
+      /* preview panel */
+      .preview {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 26px;
+      }
+
+      .qr-frame {
+        position: relative;
+        width: 240px; height: 240px;
+        border-radius: 18px;
+        background: #fff;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+        transition: transform 0.3s ease;
+      }
+      .qr-frame:hover { transform: scale(1.02); }
+      .qr-frame img { width: 100%; height: 100%; object-fit: contain; display: none; }
+      .qr-frame img.show { display: block; animation: pop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4) both; }
+
+      @keyframes pop {
+        from { opacity: 0; transform: scale(0.85); }
+        to { opacity: 1; transform: scale(1); }
+      }
+
+      .placeholder {
+        display: flex; flex-direction: column; align-items: center; gap: 10px;
+        color: #9aa;
+      }
+      .placeholder svg { opacity: 0.6; }
+      .placeholder.hide { display: none; }
+
+      .spinner {
+        position: absolute; inset: 0;
+        display: none; align-items: center; justify-content: center;
+        background: rgba(255, 255, 255, 0.7);
+      }
+      .spinner.show { display: flex; }
+      .spinner div {
+        width: 34px; height: 34px;
+        border: 4px solid rgba(124, 92, 255, 0.25);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .actions { display: flex; gap: 12px; margin-top: 22px; width: 100%; }
+      .actions a, .actions button {
+        flex: 1;
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 12px 14px;
+        font-size: 14px; font-weight: 600;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+        text-decoration: none;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.15s, opacity 0.2s;
+      }
+      .actions a:hover, .actions button:hover { background: rgba(255, 255, 255, 0.12); transform: translateY(-1px); }
+      .actions .disabled { opacity: 0.4; pointer-events: none; }
+
+      .foot { margin-top: 22px; font-size: 12px; color: #6b6f93; text-align: center; }
+      .foot code { color: var(--muted); }
+    </style>
   </head>
   <body>
-    <div class="title">
-      <h1 class="cursive">QR Code Generator &#128187 &#128242</h1>
-      <h2>Insert Link to generate QR Code</h2>
-    </div>
-    <div>
-    <form action="/" method="POST">
-      <input type="text" name="link" placeholder="Place your link here!"/>
-      <button type="submit">Generate QR CODE</button>
-    </form>
-</div>
-    <div class="generated">
-      <img src="{{data}}" alt="" />
-    </div>
+    <div class="orb a"></div>
+    <div class="orb b"></div>
+
+    <main class="shell">
+      <section class="controls">
+        <span class="badge">⚡ QR Studio</span>
+        <h1>Generate beautiful QR codes</h1>
+        <p class="sub">Paste any link or text and get a crisp, high-resolution QR code in an instant — customise the colours and size to match your brand.</p>
+
+        <form id="qr-form" autocomplete="off">
+          <div class="field">
+            <label for="link">Link or text</label>
+            <input type="text" id="link" name="link" placeholder="https://your-link.com" value="{{ link or '' }}" />
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label>Foreground</label>
+              <div class="color-field">
+                <input type="color" id="fill" value="#111111" />
+                <span id="fill-label">#111111</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Background</label>
+              <div class="color-field">
+                <input type="color" id="back" value="#ffffff" />
+                <span id="back-label">#ffffff</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Resolution <span class="slider-val" id="size-label">Medium</span></label>
+            <input type="range" id="size" min="4" max="20" value="12" />
+          </div>
+
+          <button type="submit" class="primary" id="submit-btn">Generate QR Code</button>
+          <div class="error" id="error"></div>
+        </form>
+      </section>
+
+      <section class="preview">
+        <div class="qr-frame">
+          <div class="placeholder" id="placeholder">
+            <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="#7c5cff" stroke-width="1.4">
+              <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3M20 14v7M14 20h7" />
+            </svg>
+            <span>Your QR code appears here</span>
+          </div>
+          <img id="qr-img" src="{{ data or '' }}" alt="Generated QR code" class="{{ 'show' if data else '' }}" />
+          <div class="spinner" id="spinner"><div></div></div>
+        </div>
+
+        <div class="actions">
+          <a id="download" class="disabled" download="qrcode.png">⬇ Download</a>
+          <button type="button" id="copy" class="disabled">⧉ Copy image</button>
+        </div>
+
+        <div class="foot">Built with Flask &amp; the <code>qrcode</code> library</div>
+      </section>
+    </main>
+
+    <script>
+      const form = document.getElementById("qr-form");
+      const linkInput = document.getElementById("link");
+      const fill = document.getElementById("fill");
+      const back = document.getElementById("back");
+      const size = document.getElementById("size");
+      const submitBtn = document.getElementById("submit-btn");
+      const img = document.getElementById("qr-img");
+      const placeholder = document.getElementById("placeholder");
+      const spinner = document.getElementById("spinner");
+      const errorEl = document.getElementById("error");
+      const download = document.getElementById("download");
+      const copyBtn = document.getElementById("copy");
+      const sizeLabels = { 4: "Small", 8: "Compact", 12: "Medium", 16: "Large", 20: "Extra large" };
+
+      fill.addEventListener("input", () => (document.getElementById("fill-label").textContent = fill.value));
+      back.addEventListener("input", () => (document.getElementById("back-label").textContent = back.value));
+      size.addEventListener("input", () => {
+        const v = Number(size.value);
+        const key = Object.keys(sizeLabels).reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
+        document.getElementById("size-label").textContent = sizeLabels[key];
+      });
+
+      let debounce;
+      const scheduleLive = () => {
+        clearTimeout(debounce);
+        debounce = setTimeout(() => { if (linkInput.value.trim()) generate(); }, 450);
+      };
+      [linkInput, fill, back, size].forEach((el) => el.addEventListener("input", scheduleLive));
+
+      async function generate() {
+        const data = linkInput.value.trim();
+        errorEl.textContent = "";
+        if (!data) { errorEl.textContent = "Please enter a link or some text."; return; }
+
+        spinner.classList.add("show");
+        submitBtn.disabled = true;
+
+        try {
+          const res = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ link: data, fill: fill.value, back: back.value, size: size.value }),
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || "Something went wrong.");
+
+          img.src = json.image;
+          img.classList.remove("show");
+          void img.offsetWidth; // restart animation
+          img.classList.add("show");
+          placeholder.classList.add("hide");
+
+          download.href = json.image;
+          download.classList.remove("disabled");
+          copyBtn.classList.remove("disabled");
+        } catch (err) {
+          errorEl.textContent = err.message;
+        } finally {
+          spinner.classList.remove("show");
+          submitBtn.disabled = false;
+        }
+      }
+
+      form.addEventListener("submit", (e) => { e.preventDefault(); generate(); });
+
+      copyBtn.addEventListener("click", async () => {
+        try {
+          const blob = await (await fetch(img.src)).blob();
+          await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+          copyBtn.textContent = "✓ Copied";
+          setTimeout(() => (copyBtn.textContent = "⧉ Copy image"), 1600);
+        } catch {
+          errorEl.textContent = "Copy isn't supported in this browser — use Download instead.";
+        }
+      });
+
+      // If the server pre-rendered a QR (no-JS fallback), wire up the buttons.
+      if (img.getAttribute("src")) {
+        placeholder.classList.add("hide");
+        download.href = img.src;
+        download.classList.remove("disabled");
+        copyBtn.classList.remove("disabled");
+      }
+    </script>
   </body>
 </html>
-
-<style>
-    body {
-      background-color: black;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh; /* Ensure the body takes up the full height of the viewport */
-      margin: 0; /* Remove default margin */
-    }
-
-    .title {
-      text-align: center;
-      margin-bottom: 20px; /* Add some spacing below the title */
-    }
-
-    h1, h2, p {
-      color: white;
-    }
-
-    form {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px; /* Add some spacing below the form */
-    }
-
-    form input {
-      margin-bottom: 10px; /* Add spacing between input and button */
-    }
-
-    .generated {
-      text-align: center;
-    }
-
-    img {
-      max-width: 100%; /* Make sure the image doesn't exceed its container */
-      height: auto;
-    }
-  </style>
