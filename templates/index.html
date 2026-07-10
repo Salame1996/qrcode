@@ -36,7 +36,7 @@
 
       * { box-sizing: border-box; }
 
-      html, body { height: 100%; }
+      html, body { min-height: 100%; }
 
       body {
         margin: 0;
@@ -47,9 +47,10 @@
                     linear-gradient(160deg, var(--bg-0), var(--bg-1));
         min-height: 100%;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        padding: 32px 20px;
+        justify-content: flex-start;
+        padding: 32px 20px 130px;
       }
 
       /* floating ambient orbs */
@@ -265,6 +266,7 @@
         justify-content: center;
         gap: 24px;
         width: 100%;
+        min-height: 78vh;
       }
       .ad-rail { display: none; }
       @media (min-width: 1240px) { .ad-rail { display: flex; align-items: center; } }
@@ -307,7 +309,50 @@
       }
       .ad-bottom-close:hover { background: rgba(255, 255, 255, 0.12); color: var(--text); }
 
-      body { padding-bottom: 130px; }
+      /* homepage content sections */
+      .content { position: relative; z-index: 1; width: 100%; max-width: 940px; margin: 0 auto; }
+      .content h2 {
+        font-size: clamp(22px, 3vw, 28px); letter-spacing: -0.02em; text-align: center; margin: 8px 0 6px;
+        background: linear-gradient(120deg, #fff, #b9a8ff 60%, #7fe6ff); -webkit-background-clip: text; background-clip: text; color: transparent;
+      }
+      .content .section-sub { text-align: center; color: var(--muted); margin: 0 auto 26px; max-width: 560px; }
+      .content section { margin-top: 60px; }
+
+      .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+      .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+      @media (max-width: 760px) { .steps, .feature-grid { grid-template-columns: 1fr; } }
+
+      .tile {
+        background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 20px;
+        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      }
+      .tile .num {
+        display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin-bottom: 12px;
+        border-radius: 10px; font-weight: 800; color: #fff;
+        background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      }
+      .tile .ico { font-size: 24px; margin-bottom: 10px; }
+      .tile h3 { margin: 0 0 6px; font-size: 16px; letter-spacing: -0.01em; }
+      .tile p { margin: 0; color: #b7bbdb; font-size: 14px; line-height: 1.55; }
+
+      .faq { max-width: 720px; margin: 0 auto; }
+      .faq details {
+        background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 4px 18px; margin-bottom: 12px;
+      }
+      .faq summary { cursor: pointer; padding: 14px 0; font-weight: 600; list-style: none; color: var(--text); }
+      .faq summary::-webkit-details-marker { display: none; }
+      .faq summary::after { content: "+"; float: right; color: var(--accent); font-weight: 700; font-size: 18px; }
+      .faq details[open] summary::after { content: "–"; }
+      .faq p { margin: 0 0 16px; color: #b7bbdb; font-size: 14px; line-height: 1.6; }
+
+      .site-footer {
+        position: relative; z-index: 1; width: 100%; max-width: 940px; margin: 64px auto 0; padding-top: 24px;
+        border-top: 1px solid var(--border);
+        display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between;
+      }
+      .site-footer a { color: var(--muted); text-decoration: none; font-size: 14px; }
+      .site-footer a:hover { color: var(--text); }
+      .site-footer .copy { color: #6b6f93; font-size: 13px; }
 
       /* ad interstitial modal */
       .ad-overlay {
@@ -442,6 +487,88 @@
         </div>
       </aside>
     </div><!-- /.stage -->
+
+    <div class="content">
+      <section id="how-it-works">
+        <h2>How it works</h2>
+        <p class="section-sub">Three quick steps — no sign-up, no software to install.</p>
+        <div class="steps">
+          <div class="tile">
+            <div class="num">1</div>
+            <h3>Paste your link</h3>
+            <p>Drop in any URL, text, phone number or Wi-Fi detail you want to share.</p>
+          </div>
+          <div class="tile">
+            <div class="num">2</div>
+            <h3>Customise it</h3>
+            <p>Pick foreground and background colours so the code matches your brand.</p>
+          </div>
+          <div class="tile">
+            <div class="num">3</div>
+            <h3>Download or copy</h3>
+            <p>Grab a crisp, high-resolution PNG or copy the image straight to your clipboard.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="features">
+        <h2>Why QR Studio</h2>
+        <p class="section-sub">A focused tool that does one thing really well.</p>
+        <div class="feature-grid">
+          <div class="tile">
+            <div class="ico">⚡</div>
+            <h3>Instant &amp; free</h3>
+            <p>Generate unlimited QR codes in seconds. No accounts, no watermarks, no cost.</p>
+          </div>
+          <div class="tile">
+            <div class="ico">🖨️</div>
+            <h3>Print-ready quality</h3>
+            <p>High error-correction output stays scannable even on posters, cards and packaging.</p>
+          </div>
+          <div class="tile">
+            <div class="ico">🔒</div>
+            <h3>Privacy-friendly</h3>
+            <p>Your links are used only to build the image — we never store what you generate.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq">
+        <h2>Frequently asked questions</h2>
+        <p class="section-sub">The quick answers to what people ask most.</p>
+        <div class="faq">
+          <details>
+            <summary>What can I turn into a QR code?</summary>
+            <p>Any URL, plain text, phone number, email address or Wi-Fi login. If it fits in text, it fits in a QR code.</p>
+          </details>
+          <details>
+            <summary>Do my QR codes ever expire?</summary>
+            <p>No. The codes are static — they encode your data directly, so they keep working forever and never depend on our servers.</p>
+          </details>
+          <details>
+            <summary>Are my links stored or tracked?</summary>
+            <p>No. The text you enter is used only to render the image and is not saved. See our <a href="/privacy">Privacy Policy</a> for details.</p>
+          </details>
+          <details>
+            <summary>Can I change the colours?</summary>
+            <p>Yes — pick any foreground and background colour. Just keep enough contrast between them so scanners can read the code reliably.</p>
+          </details>
+          <details>
+            <summary>Is it really free?</summary>
+            <p>Yes. QR Studio is free to use with no limits. Ads on the page help keep it that way.</p>
+          </details>
+        </div>
+      </section>
+    </div>
+
+    <footer class="site-footer">
+      <div>
+        <a href="/">Generator</a> ·
+        <a href="/about">About</a> ·
+        <a href="/privacy">Privacy</a>
+      </div>
+      <div class="copy">© 2026 QR Studio</div>
+    </footer>
 
     <!-- Bottom banner (Google AdSense) -->
     <div class="ad-bottom" id="ad-bottom">

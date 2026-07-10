@@ -63,5 +63,15 @@ def generate_form():
     return render_template("index.html", data=image, link=data)
 
 
+@app.route("/about", methods=["GET"])
+def about():
+    return render_template("about.html")
+
+
+@app.route("/privacy", methods=["GET"])
+def privacy():
+    return render_template("privacy.html")
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}About — QR Studio{% endblock %}
+{% block description %}About QR Studio — a free, fast, privacy-friendly QR code generator.{% endblock %}
+
+{% block content %}
+<article class="card">
+  <h1>About QR Studio</h1>
+  <p class="lead">A free, fast and privacy-friendly way to turn any link or text into a clean, high-resolution QR code.</p>
+
+  <h2>What QR Studio does</h2>
+  <p>
+    QR Studio takes any URL, message, Wi-Fi detail, or plain text you enter and instantly
+    renders it as a scannable QR code. You can customise the foreground and background
+    colours to match your brand, then download the image as a PNG or copy it straight to
+    your clipboard. There are no accounts, no watermarks and no limits — paste, generate,
+    and you are done.
+  </p>
+
+  <h2>Why we built it</h2>
+  <p>
+    Most online QR generators bury the tool under sign-up walls, upsells or low-quality
+    exports. We wanted the opposite: a single, focused page that produces crisp,
+    print-ready codes in a couple of seconds and gets out of your way. QR Studio is that
+    tool — useful for posters, business cards, restaurant menus, event check-ins, product
+    packaging, or simply sharing a link across the room.
+  </p>
+
+  <h2>How it is made</h2>
+  <p>
+    The site is built with Flask on the server and the widely-used open-source
+    <code>qrcode</code> library, which generates every code with high error correction so
+    it stays reliable even when printed small or partially obscured. The interface is a
+    lightweight, hand-written front end with no heavy frameworks, so it loads fast on any
+    device.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Questions, feedback or a feature request? Email us at
+    <a href="mailto:hello@qr-studio.app">hello@qr-studio.app</a> and we will get back to you.
+  </p>
+</article>
+{% endblock %}

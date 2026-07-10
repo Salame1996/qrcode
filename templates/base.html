@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}QR Studio{% endblock %}</title>
+    <meta name="description" content="{% block description %}Generate beautiful, high-resolution QR codes instantly.{% endblock %}" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%E2%9A%A1</text></svg>" />
+    <style>
+      :root {
+        --bg-0: #0b0c1a;
+        --bg-1: #12132a;
+        --card: rgba(255, 255, 255, 0.06);
+        --border: rgba(255, 255, 255, 0.12);
+        --text: #eef0ff;
+        --muted: #a4a8c9;
+        --accent: #7c5cff;
+        --accent-2: #22d3ee;
+      }
+      * { box-sizing: border-box; }
+      html, body { min-height: 100%; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text);
+        background: radial-gradient(1200px 800px at 15% -10%, #241b4d 0%, transparent 55%),
+                    radial-gradient(1000px 700px at 100% 0%, #10344a 0%, transparent 50%),
+                    linear-gradient(160deg, var(--bg-0), var(--bg-1));
+        line-height: 1.65;
+      }
+
+      .wrap { max-width: 760px; margin: 0 auto; padding: 40px 22px 80px; }
+
+      .topnav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+      .brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: -0.01em; color: var(--text); text-decoration: none; }
+      .brand .dot { color: var(--accent-2); }
+      .topnav nav a { color: var(--muted); text-decoration: none; margin-left: 18px; font-size: 14px; font-weight: 600; }
+      .topnav nav a:hover { color: var(--text); }
+
+      h1 { font-size: clamp(28px, 4vw, 38px); letter-spacing: -0.02em; margin: 0 0 6px;
+           background: linear-gradient(120deg, #fff, #b9a8ff 60%, #7fe6ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      h2 { font-size: 20px; margin: 34px 0 10px; letter-spacing: -0.01em; }
+      p, li { color: #cdd0ea; }
+      .lead { color: var(--muted); font-size: 17px; margin: 0 0 8px; }
+      a { color: #b9a8ff; }
+      .updated { color: #6b6f93; font-size: 13px; margin-bottom: 8px; }
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 28px 30px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+
+      .site-footer { border-top: 1px solid var(--border); margin-top: 48px; padding-top: 22px; display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between; }
+      .site-footer a { color: var(--muted); text-decoration: none; font-size: 14px; }
+      .site-footer a:hover { color: var(--text); }
+      .site-footer .copy { color: #6b6f93; font-size: 13px; }
+    </style>
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="topnav">
+        <a class="brand" href="/">⚡ QR&nbsp;Studio</a>
+        <nav>
+          <a href="/">Generator</a>
+          <a href="/about">About</a>
+          <a href="/privacy">Privacy</a>
+        </nav>
+      </div>
+
+      {% block content %}{% endblock %}
+
+      <footer class="site-footer">
+        <div>
+          <a href="/">Generator</a> ·
+          <a href="/about">About</a> ·
+          <a href="/privacy">Privacy</a>
+        </div>
+        <div class="copy">© 2026 QR Studio</div>
+      </footer>
+    </div>
+  </body>
+</html>
