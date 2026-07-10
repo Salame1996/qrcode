@@ -1,5 +1,7 @@
 # QR Studio
 
+**Live:** https://qr-studio-bay-iota.vercel.app
+
 A modern, fast QR code generator built with Flask. Paste any link or text and get a
 crisp, high-resolution QR code instantly — customise foreground/background colours and
 resolution, then download or copy the image.
