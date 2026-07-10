@@ -13,14 +13,6 @@ app = Flask(__name__, template_folder=TEMPLATE_DIR)
 app.config["JSON_SORT_KEYS"] = False
 
 
-def _clamp(value, low, high, default):
-    """Parse an int from form/query data and clamp it to a safe range."""
-    try:
-        return max(low, min(high, int(value)))
-    except (TypeError, ValueError):
-        return default
-
-
 def make_qr_data_uri(data, fill="#000000", back="#ffffff", box_size=12, border=2):
     """Render `data` into a base64 PNG data URI."""
     qr = qrcode.QRCode(
@@ -54,10 +46,9 @@ def generate_api():
 
     fill = payload.get("fill") or "#000000"
     back = payload.get("back") or "#ffffff"
-    box_size = _clamp(payload.get("size"), 4, 20, 12)
 
     try:
-        image = make_qr_data_uri(data, fill=fill, back=back, box_size=box_size)
+        image = make_qr_data_uri(data, fill=fill, back=back)
     except Exception as exc:  # noqa: BLE001 - surface a friendly error to the client
         return jsonify({"error": f"Could not generate QR code: {exc}"}), 400
 

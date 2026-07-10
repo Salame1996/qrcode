@@ -146,9 +146,6 @@
       input[type="color"]::-webkit-color-swatch { border: none; border-radius: 8px; }
       .color-field span { font-size: 13px; color: var(--muted); }
 
-      .slider-val { color: var(--text); font-weight: 600; }
-      input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
-
       button.primary {
         width: 100%;
         margin-top: 6px;
@@ -243,6 +240,69 @@
 
       .foot { margin-top: 22px; font-size: 12px; color: #6b6f93; text-align: center; }
       .foot code { color: var(--muted); }
+
+      /* ad interstitial modal */
+      .ad-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(6, 7, 18, 0.72);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+      }
+      .ad-overlay.show { display: flex; animation: fade 0.25s ease both; }
+      @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+      .ad-modal {
+        width: 100%;
+        max-width: 360px;
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+        animation: rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      }
+
+      .ad-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+      .ad-tag {
+        font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--muted); background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px;
+      }
+      .ad-close {
+        width: 28px; height: 28px; line-height: 1;
+        font-size: 20px; color: var(--muted);
+        background: transparent; border: none; border-radius: 8px; cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+      }
+      .ad-close:hover { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+
+      .ad-slot {
+        min-height: 250px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px dashed var(--border);
+        overflow: hidden;
+      }
+      .ad-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #6b6f93; }
+      .ad-placeholder strong { color: var(--muted); font-size: 15px; }
+      .ad-placeholder span { font-size: 12px; }
+
+      .ad-continue {
+        width: 100%; margin-top: 16px;
+        padding: 13px 18px; font-size: 14px; font-weight: 700;
+        color: #fff; border: none; border-radius: 12px; cursor: pointer;
+        background: linear-gradient(120deg, var(--accent), var(--accent-2));
+        transition: opacity 0.2s, transform 0.15s;
+      }
+      .ad-continue:hover:not(:disabled) { transform: translateY(-1px); }
+      .ad-continue:disabled { opacity: 0.5; cursor: default; }
     </style>
   </head>
   <body>
@@ -253,7 +313,7 @@
       <section class="controls">
         <span class="badge">⚡ QR Studio</span>
         <h1>Generate beautiful QR codes</h1>
-        <p class="sub">Paste any link or text and get a crisp, high-resolution QR code in an instant — customise the colours and size to match your brand.</p>
+        <p class="sub">Paste any link or text and get a crisp, high-resolution QR code in an instant — customise the colours to match your brand.</p>
 
         <form id="qr-form" autocomplete="off">
           <div class="field">
@@ -276,11 +336,6 @@
                 <span id="back-label">#ffffff</span>
               </div>
             </div>
-          </div>
-
-          <div class="field">
-            <label>Resolution <span class="slider-val" id="size-label">Medium</span></label>
-            <input type="range" id="size" min="4" max="20" value="12" />
           </div>
 
           <button type="submit" class="primary" id="submit-btn">Generate QR Code</button>
@@ -310,12 +365,38 @@
       </section>
     </main>
 
+    <!-- Ad interstitial shown when the user clicks Generate -->
+    <div class="ad-overlay" id="ad-overlay" aria-hidden="true">
+      <div class="ad-modal" role="dialog" aria-modal="true" aria-label="Advertisement">
+        <div class="ad-head">
+          <span class="ad-tag">Advertisement</span>
+          <button type="button" class="ad-close" id="ad-close" aria-label="Close">&times;</button>
+        </div>
+
+        <!-- ===== DROP YOUR REAL AD CODE HERE =====
+             Replace the placeholder below with your ad network snippet,
+             e.g. a Google AdSense <ins class="adsbygoogle" ...> block, and
+             call (adsbygoogle = window.adsbygoogle || []).push({}) in the
+             showAd() function. Recommended slot size: 300x250. -->
+        <div class="ad-slot" id="ad-slot">
+          <div class="ad-placeholder">
+            <strong>Your ad here</strong>
+            <span>300 × 250 ad unit</span>
+          </div>
+        </div>
+        <!-- ===== END AD CODE ===== -->
+
+        <button type="button" class="ad-continue" id="ad-continue" disabled>
+          <span id="ad-continue-text">Preparing your QR code…</span>
+        </button>
+      </div>
+    </div>
+
     <script>
       const form = document.getElementById("qr-form");
       const linkInput = document.getElementById("link");
       const fill = document.getElementById("fill");
       const back = document.getElementById("back");
-      const size = document.getElementById("size");
       const submitBtn = document.getElementById("submit-btn");
       const img = document.getElementById("qr-img");
       const placeholder = document.getElementById("placeholder");
@@ -323,58 +404,114 @@
       const errorEl = document.getElementById("error");
       const download = document.getElementById("download");
       const copyBtn = document.getElementById("copy");
-      const sizeLabels = { 4: "Small", 8: "Compact", 12: "Medium", 16: "Large", 20: "Extra large" };
+
+      // Ad interstitial elements
+      const adOverlay = document.getElementById("ad-overlay");
+      const adClose = document.getElementById("ad-close");
+      const adContinue = document.getElementById("ad-continue");
+      const adContinueText = document.getElementById("ad-continue-text");
+      const AD_SECONDS = 4; // how long the ad shows before "Continue" unlocks
 
       fill.addEventListener("input", () => (document.getElementById("fill-label").textContent = fill.value));
       back.addEventListener("input", () => (document.getElementById("back-label").textContent = back.value));
-      size.addEventListener("input", () => {
-        const v = Number(size.value);
-        const key = Object.keys(sizeLabels).reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
-        document.getElementById("size-label").textContent = sizeLabels[key];
-      });
 
-      let debounce;
-      const scheduleLive = () => {
-        clearTimeout(debounce);
-        debounce = setTimeout(() => { if (linkInput.value.trim()) generate(); }, 450);
-      };
-      [linkInput, fill, back, size].forEach((el) => el.addEventListener("input", scheduleLive));
+      let pendingImage = null;   // QR data URI generated while the ad is showing
+      let adTimer = null;
+
+      // Ask the server for the QR image (no UI side effects — just returns the data URI).
+      async function fetchQr() {
+        const data = linkInput.value.trim();
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ link: data, fill: fill.value, back: back.value }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Something went wrong.");
+        return json.image;
+      }
+
+      // Paint a generated QR into the preview panel.
+      function renderQr(image) {
+        img.src = image;
+        img.classList.remove("show");
+        void img.offsetWidth; // restart the pop animation
+        img.classList.add("show");
+        placeholder.classList.add("hide");
+
+        download.href = image;
+        download.classList.remove("disabled");
+        copyBtn.classList.remove("disabled");
+      }
+
+      function openAd() {
+        adOverlay.classList.add("show");
+        adOverlay.setAttribute("aria-hidden", "false");
+        adContinue.disabled = true;
+
+        // --- If you use a real ad network, initialise the ad unit here. ---
+        // e.g. (adsbygoogle = window.adsbygoogle || []).push({});
+
+        let remaining = AD_SECONDS;
+        adContinueText.textContent = `Continue in ${remaining}…`;
+        clearInterval(adTimer);
+        adTimer = setInterval(() => {
+          remaining -= 1;
+          if (remaining > 0) {
+            adContinueText.textContent = `Continue in ${remaining}…`;
+          } else {
+            clearInterval(adTimer);
+            unlockContinue();
+          }
+        }, 1000);
+      }
+
+      function unlockContinue() {
+        // Only enable the button once the QR is actually ready.
+        if (pendingImage) {
+          adContinue.disabled = false;
+          adContinueText.textContent = "Show my QR code →";
+        } else {
+          adContinueText.textContent = "Preparing your QR code…";
+        }
+      }
+
+      function closeAd(reveal) {
+        clearInterval(adTimer);
+        adOverlay.classList.remove("show");
+        adOverlay.setAttribute("aria-hidden", "true");
+        if (reveal && pendingImage) renderQr(pendingImage);
+        pendingImage = null;
+        submitBtn.disabled = false;
+        spinner.classList.remove("show");
+      }
 
       async function generate() {
         const data = linkInput.value.trim();
         errorEl.textContent = "";
         if (!data) { errorEl.textContent = "Please enter a link or some text."; return; }
 
-        spinner.classList.add("show");
         submitBtn.disabled = true;
+        spinner.classList.add("show");
+        pendingImage = null;
+        openAd();
 
         try {
-          const res = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ link: data, fill: fill.value, back: back.value, size: size.value }),
-          });
-          const json = await res.json();
-          if (!res.ok) throw new Error(json.error || "Something went wrong.");
-
-          img.src = json.image;
-          img.classList.remove("show");
-          void img.offsetWidth; // restart animation
-          img.classList.add("show");
-          placeholder.classList.add("hide");
-
-          download.href = json.image;
-          download.classList.remove("disabled");
-          copyBtn.classList.remove("disabled");
+          pendingImage = await fetchQr();
+          // If the countdown already finished while we were fetching, unlock now.
+          if (!adOverlay.classList.contains("show")) return;
+          if (adContinueText.textContent.startsWith("Preparing")) unlockContinue();
+          else if (adContinue.disabled === false) adContinueText.textContent = "Show my QR code →";
         } catch (err) {
           errorEl.textContent = err.message;
-        } finally {
-          spinner.classList.remove("show");
-          submitBtn.disabled = false;
+          closeAd(false);
         }
       }
 
       form.addEventListener("submit", (e) => { e.preventDefault(); generate(); });
+      adContinue.addEventListener("click", () => closeAd(true));
+      adClose.addEventListener("click", () => closeAd(true));
+      adOverlay.addEventListener("click", (e) => { if (e.target === adOverlay) closeAd(true); });
 
       copyBtn.addEventListener("click", async () => {
         try {
