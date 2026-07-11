@@ -14,7 +14,14 @@ app.config["JSON_SORT_KEYS"] = False
 
 # Google AdSense publisher ID (e.g. "ca-pub-1234567890123456"). Set via the
 # ADSENSE_CLIENT env var on Vercel. While empty, no ad code is emitted anywhere.
-ADSENSE_CLIENT = os.environ.get("ADSENSE_CLIENT", "").strip()
+# Strip any stray BOM / zero-width chars that shell pipelines can prepend, since
+# str.strip() alone won't remove a U+FEFF.
+ADSENSE_CLIENT = (
+    os.environ.get("ADSENSE_CLIENT", "")
+    .replace("﻿", "")
+    .replace("​", "")
+    .strip()
+)
 
 
 @app.context_processor
