@@ -4,7 +4,7 @@ from base64 import b64encode
 
 import qrcode
 from qrcode.constants import ERROR_CORRECT_H
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, redirect
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
@@ -24,10 +24,31 @@ ADSENSE_CLIENT = (
 )
 
 
+# Canonical ad domain: every alias host funnels here so ads live on one domain,
+# and the AdSense code / ads.txt are emitted only on the AdSense-authorized host.
+CANONICAL_HOST = "qrgenfree.es"
+REDIRECT_HOSTS = {"www.qrgenfree.es", "qrcode.carlossalame.com"}
+AD_HOSTS = {"qrgenfree.es"}
+
+
+def _host():
+    return (request.host or "").split(":")[0].lower()
+
+
+@app.before_request
+def canonical_redirect():
+    """Permanently send the alias domains to the canonical one (keeps path + query)."""
+    if _host() in REDIRECT_HOSTS:
+        target = f"https://{CANONICAL_HOST}{request.path}"
+        if request.query_string:
+            target += "?" + request.query_string.decode()
+        return redirect(target, code=308)
+
+
 @app.context_processor
 def inject_adsense():
-    """Make the publisher ID available to every template."""
-    return {"adsense_client": ADSENSE_CLIENT}
+    """Expose the publisher ID to templates — only on the AdSense-authorized host."""
+    return {"adsense_client": ADSENSE_CLIENT if _host() in AD_HOSTS else ""}
 
 
 def make_qr_data_uri(data, fill="#000000", back="#ffffff", box_size=12, border=2):
@@ -92,8 +113,8 @@ def privacy():
 
 @app.route("/ads.txt", methods=["GET"])
 def ads_txt():
-    """AdSense authorized-sellers file. Served only once a publisher ID is set."""
-    if not ADSENSE_CLIENT:
+    """AdSense authorized-sellers file. Served only on the ad host when configured."""
+    if not ADSENSE_CLIENT or _host() not in AD_HOSTS:
         return "", 404
     pub = ADSENSE_CLIENT.replace("ca-", "", 1)  # ads.txt uses "pub-…", not "ca-pub-…"
     return Response(
