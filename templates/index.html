@@ -504,7 +504,7 @@
           <button type="button" id="copy" class="disabled">⧉ Copy image</button>
         </div>
 
-        <div class="foot">Built with Flask &amp; the <code>qrcode</code> library</div>
+        <div class="foot" id="save-hint">Built with Flask &amp; the <code>qrcode</code> library</div>
       </section>
     </main>
     </div><!-- /.stage -->
@@ -618,6 +618,35 @@
       const download = document.getElementById("download");
       const copyBtn = document.getElementById("copy");
       const scanStatus = document.getElementById("scan-status");
+      let objectUrl = null;
+
+      /** Convert a data: URI to a Blob synchronously.
+       *  Synchronously matters: navigator.share() must be called inside the
+       *  user gesture, and awaiting fetch() first loses that on some browsers. */
+      function dataUriToBlob(uri) {
+        const comma = uri.indexOf(",");
+        const header = uri.slice(0, comma);
+        const mime = (header.match(/:(.*?);/) || [null, "image/png"])[1];
+        const binary = atob(uri.slice(comma + 1));
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return new Blob([bytes], { type: mime });
+      }
+
+      function fileName() {
+        return mode === "photo" ? "photo-qr.png" : "qrcode.png";
+      }
+
+      /** Point the download link at a blob: URL.
+       *  iOS Safari ignores the download attribute on data: URIs — the tap does
+       *  nothing at all — but honours it on blob: URLs. */
+      function armDownload(dataUri) {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = URL.createObjectURL(dataUriToBlob(dataUri));
+        download.href = objectUrl;
+        download.download = fileName();
+        download.classList.remove("disabled");
+      }
 
       fill.addEventListener("input", () => (document.getElementById("fill-label").textContent = fill.value));
       back.addEventListener("input", () => (document.getElementById("back-label").textContent = back.value));
@@ -741,6 +770,12 @@
 
       linkInput.addEventListener("input", updateLenHint);
       updateLenHint();
+
+      // Phones save images through the share sheet or a long press, so say so.
+      if (window.matchMedia("(pointer: coarse)").matches) {
+        const hint = document.getElementById("save-hint");
+        if (hint) hint.textContent = "Tip: tap Download to open the share sheet, or press and hold the code to save it.";
+      }
 
       function setPhoto(uri, name) {
         photoDataUri = uri;
@@ -941,8 +976,7 @@
           img.classList.add("show");
           placeholder.classList.add("hide");
 
-          download.href = json.image;
-          download.classList.remove("disabled");
+          armDownload(json.image);
           copyBtn.classList.remove("disabled");
         } catch (err) {
           errorEl.textContent = err.message;
@@ -953,6 +987,30 @@
       }
 
       form.addEventListener("submit", (e) => { e.preventDefault(); generate(); });
+
+      /** On a phone the native share sheet is how an image reaches the camera
+       *  roll — "Save Image" lives there. Desktop keeps the plain download,
+       *  which the blob: URL already handles. */
+      download.addEventListener("click", (e) => {
+        if (download.classList.contains("disabled")) { e.preventDefault(); return; }
+        const src = img.getAttribute("src");
+        if (!src || !src.startsWith("data:")) return;
+
+        let file;
+        try {
+          file = new File([dataUriToBlob(src)], fileName(), { type: "image/png" });
+        } catch {
+          return; // fall through to the normal blob: download
+        }
+        if (!(navigator.canShare && navigator.canShare({ files: [file] }))) return;
+
+        e.preventDefault();
+        navigator.share({ files: [file] }).catch((err) => {
+          if (err && err.name === "AbortError") return; // user dismissed the sheet
+          // Sharing refused for some other reason — fall back to the link.
+          if (objectUrl) window.location.href = objectUrl;
+        });
+      });
 
       copyBtn.addEventListener("click", async () => {
         try {
@@ -968,8 +1026,7 @@
       // If the server pre-rendered a QR (no-JS fallback), wire up the buttons.
       if (img.getAttribute("src")) {
         placeholder.classList.add("hide");
-        download.href = img.src;
-        download.classList.remove("disabled");
+        armDownload(img.src);
         copyBtn.classList.remove("disabled");
       }
     </script>
