@@ -6,6 +6,20 @@ A modern, fast QR code generator built with Flask. Paste any link or text and ge
 crisp, high-resolution QR code instantly — customise foreground/background colours,
 pick a style and drop in a company logo, then download or copy the image.
 
+## Three modes
+
+The generator has three tabs:
+
+- **Plain QR** — a classic black-and-white code. Square modules, no logo, no
+  picture. The most robust output here: it decodes under both OpenCV and ZXing
+  down to 160px, so it is the right pick when a code has to survive a small
+  print, a poor camera or distance. Foreground and background colours still apply.
+- **Logo QR** — the five styles below, with an optional company logo.
+- **Photo QR** — halftone codes where the photo becomes the code itself.
+
+Plain mode deliberately ignores the style picker and any uploaded logo, so
+switching tabs never leaks one mode's extras into another.
+
 ## Branded QR codes
 
 Upload a logo (SVG, PNG, JPG or WEBP) and it is composited into the centre of the code.

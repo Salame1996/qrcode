@@ -382,7 +382,8 @@
         <p class="sub">Paste any link or text and get a crisp, high-resolution QR code in an instant — customise the colours to match your brand.</p>
 
         <div class="modes" id="modes" role="tablist" aria-label="QR code mode">
-          <button type="button" data-mode="link" role="tab" aria-selected="true">Logo QR</button>
+          <button type="button" data-mode="plain" role="tab" aria-selected="true">Plain QR</button>
+          <button type="button" data-mode="link" role="tab" aria-selected="false">Logo QR</button>
           <button type="button" data-mode="photo" role="tab" aria-selected="false">Photo QR</button>
         </div>
 
@@ -392,25 +393,34 @@
             <input type="text" id="link" name="link" placeholder="https://your-link.com" value="{{ link or '' }}" />
           </div>
 
-          <div class="mode-panel active" id="panel-link">
-
-          <div class="row">
-            <div class="field">
-              <label>Foreground</label>
-              <div class="color-field">
-                <input type="color" id="fill" value="#111111" />
-                <span id="fill-label">#111111</span>
+          <div id="shared-colours">
+            <div class="row">
+              <div class="field">
+                <label>Foreground</label>
+                <div class="color-field">
+                  <input type="color" id="fill" value="#111111" />
+                  <span id="fill-label">#111111</span>
+                </div>
               </div>
-            </div>
-            <div class="field">
-              <label>Background</label>
-              <div class="color-field">
-                <input type="color" id="back" value="#ffffff" />
-                <span id="back-label">#ffffff</span>
+              <div class="field">
+                <label>Background</label>
+                <div class="color-field">
+                  <input type="color" id="back" value="#ffffff" />
+                  <span id="back-label">#ffffff</span>
+                </div>
               </div>
             </div>
           </div>
 
+          <div class="mode-panel active" id="panel-plain">
+            <div class="notice">
+              <b>A plain, classic QR code.</b> Square modules, no logo and no
+              picture — the most robust thing this makes. Best when the code has
+              to survive a small print, a bad camera or a long distance.
+            </div>
+          </div>
+
+          <div class="mode-panel" id="panel-link">
           <div class="field">
             <label>Style</label>
             <div class="presets" id="presets" role="group" aria-label="QR code style">
@@ -586,7 +596,7 @@
       const RASTER_PX = 1024; // plenty for the largest QR we render
       let logoDataUri = null;
       let photoDataUri = null;
-      let mode = "link";
+      let mode = "plain";
       let stream = null;
       let preset = presetsEl?.querySelector("button")?.dataset.preset || "classic";
       const linkInput = document.getElementById("link");
@@ -605,7 +615,13 @@
 
       // ---- mode switching -------------------------------------------------
       const modesEl = document.getElementById("modes");
-      const panels = { link: document.getElementById("panel-link"), photo: document.getElementById("panel-photo") };
+      const panels = {
+        plain: document.getElementById("panel-plain"),
+        link: document.getElementById("panel-link"),
+        photo: document.getElementById("panel-photo"),
+      };
+      const sharedColours = document.getElementById("shared-colours");
+      const SUBMIT_LABEL = { plain: "Generate QR Code", link: "Generate QR Code", photo: "Build Photo QR" };
 
       modesEl.addEventListener("click", (e) => {
         const btn = e.target.closest("button[data-mode]");
@@ -615,7 +631,10 @@
           b.setAttribute("aria-selected", String(b === btn))
         );
         Object.entries(panels).forEach(([k, el]) => el.classList.toggle("active", k === mode));
-        submitBtn.textContent = mode === "photo" ? "Build Photo QR" : "Generate QR Code";
+        // Colours apply to both plain and logo codes; a photo code takes its
+        // tones from the picture itself.
+        sharedColours.style.display = mode === "photo" ? "none" : "";
+        submitBtn.textContent = SUBMIT_LABEL[mode];
         errorEl.textContent = "";
         if (mode !== "photo") stopCamera();
       });
@@ -875,10 +894,15 @@
 
         try {
           const endpoint = mode === "photo" ? "/api/photo" : "/api/generate";
-          const body =
-            mode === "photo"
-              ? { link: data, photo: photoDataUri, colorized: document.getElementById("colorized").checked }
-              : { link: data, fill: fill.value, back: back.value, preset: preset, logo: logoDataUri };
+          let body;
+          if (mode === "photo") {
+            body = { link: data, photo: photoDataUri, colorized: document.getElementById("colorized").checked };
+          } else if (mode === "plain") {
+            // Deliberately ignores the style picker and any uploaded logo.
+            body = { link: data, fill: fill.value, back: back.value, preset: "classic", logo: null };
+          } else {
+            body = { link: data, fill: fill.value, back: back.value, preset: preset, logo: logoDataUri };
+          }
           const res = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
