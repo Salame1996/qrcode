@@ -113,6 +113,36 @@
 
       label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 8px; }
 
+      .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+      .presets button {
+        flex: 1 1 auto; min-width: 76px; padding: 9px 12px; font: inherit; font-size: 13px; font-weight: 600;
+        color: var(--muted); background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+        border-radius: 10px; cursor: pointer; transition: all .18s ease;
+      }
+      .presets button:hover { color: var(--text); border-color: rgba(255,255,255,0.28); }
+      .presets button[aria-pressed="true"] { color: #fff; background: linear-gradient(120deg, var(--accent), #5b8cff); border-color: transparent; }
+
+      .logo-drop {
+        display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+        border: 1px dashed var(--border); border-radius: 12px; cursor: pointer;
+        background: rgba(255,255,255,0.03); transition: border-color .18s ease, background .18s ease;
+      }
+      .logo-drop:hover, .logo-drop.dragover { border-color: var(--accent); background: rgba(124,92,255,0.08); }
+      .logo-drop input[type="file"] { display: none; }
+      .logo-drop .thumb {
+        width: 40px; height: 40px; border-radius: 8px; flex: 0 0 auto; background: #fff;
+        object-fit: contain; display: none; padding: 3px;
+      }
+      .logo-drop .thumb.show { display: block; }
+      .logo-drop .txt { font-size: 13px; color: var(--muted); line-height: 1.4; }
+      .logo-drop .txt b { color: var(--text); font-weight: 600; }
+      .logo-clear {
+        margin-left: auto; flex: 0 0 auto; border: 0; background: none; color: var(--muted);
+        font: inherit; font-size: 18px; cursor: pointer; padding: 0 4px; display: none;
+      }
+      .logo-clear.show { display: block; }
+      .logo-clear:hover { color: #ff8095; }
+
       .field { margin-bottom: 18px; }
 
       input[type="text"] {
@@ -334,6 +364,25 @@
             </div>
           </div>
 
+          <div class="field">
+            <label>Style</label>
+            <div class="presets" id="presets" role="group" aria-label="QR code style">
+              {% for p in presets %}
+              <button type="button" data-preset="{{ p.id }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ p.label }}</button>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="logo">Logo <span style="font-weight:400">— optional</span></label>
+            <label class="logo-drop" id="logo-drop" for="logo">
+              <input type="file" id="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+              <img class="thumb" id="logo-thumb" alt="" />
+              <span class="txt" id="logo-txt"><b>Upload your logo</b><br />SVG, PNG, JPG or WEBP — up to 2 MB</span>
+              <button type="button" class="logo-clear" id="logo-clear" title="Remove logo" aria-label="Remove logo">×</button>
+            </label>
+          </div>
+
           <button type="submit" class="primary" id="submit-btn">Generate QR Code</button>
           <div class="error" id="error"></div>
         </form>
@@ -446,6 +495,17 @@
 
     <script>
       const form = document.getElementById("qr-form");
+      const logoInput = document.getElementById("logo");
+      const logoDrop = document.getElementById("logo-drop");
+      const logoThumb = document.getElementById("logo-thumb");
+      const logoTxt = document.getElementById("logo-txt");
+      const logoClear = document.getElementById("logo-clear");
+      const presetsEl = document.getElementById("presets");
+
+      const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+      const RASTER_PX = 1024; // plenty for the largest QR we render
+      let logoDataUri = null;
+      let preset = presetsEl?.querySelector("button")?.dataset.preset || "classic";
       const linkInput = document.getElementById("link");
       const fill = document.getElementById("fill");
       const back = document.getElementById("back");
@@ -460,6 +520,131 @@
       fill.addEventListener("input", () => (document.getElementById("fill-label").textContent = fill.value));
       back.addEventListener("input", () => (document.getElementById("back-label").textContent = back.value));
 
+      presetsEl?.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-preset]");
+        if (!btn) return;
+        preset = btn.dataset.preset;
+        presetsEl.querySelectorAll("button").forEach((b) =>
+          b.setAttribute("aria-pressed", String(b === btn))
+        );
+      });
+
+      /**
+       * Rasterise an SVG in the browser.
+       * Two reasons this happens client-side rather than on the server:
+       * Vercel's Python runtime has no Cairo, so it cannot rasterise SVG at all;
+       * and an SVG is active XML, so keeping the parse off the server avoids
+       * handing it script/XXE content. Loading via <img> also means any script
+       * inside the file is inert here.
+       */
+      function svgToPng(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(new Error("That SVG couldn't be read."));
+          reader.onload = () => {
+            let markup = String(reader.result);
+            // Many logo SVGs carry only a viewBox; canvas needs real dimensions.
+            try {
+              const doc = new DOMParser().parseFromString(markup, "image/svg+xml");
+              const svg = doc.documentElement;
+              if (svg.nodeName !== "svg") throw new Error("not svg");
+              if (!svg.getAttribute("width") || !svg.getAttribute("height")) {
+                const vb = (svg.getAttribute("viewBox") || "").split(/[\s,]+/);
+                const w = parseFloat(vb[2]) || RASTER_PX;
+                const h = parseFloat(vb[3]) || RASTER_PX;
+                svg.setAttribute("width", w);
+                svg.setAttribute("height", h);
+              }
+              markup = new XMLSerializer().serializeToString(svg);
+            } catch {
+              return reject(new Error("That SVG couldn't be parsed."));
+            }
+
+            const url = URL.createObjectURL(new Blob([markup], { type: "image/svg+xml" }));
+            const im = new Image();
+            im.onload = () => {
+              const scale = RASTER_PX / Math.max(im.width || 1, im.height || 1);
+              const canvas = document.createElement("canvas");
+              canvas.width = Math.max(1, Math.round((im.width || RASTER_PX) * scale));
+              canvas.height = Math.max(1, Math.round((im.height || RASTER_PX) * scale));
+              canvas.getContext("2d").drawImage(im, 0, 0, canvas.width, canvas.height);
+              URL.revokeObjectURL(url);
+              try {
+                resolve(canvas.toDataURL("image/png"));
+              } catch {
+                reject(new Error("That SVG links to external images, so it can't be converted. Export it as a PNG instead."));
+              }
+            };
+            im.onerror = () => { URL.revokeObjectURL(url); reject(new Error("That SVG couldn't be rendered.")); };
+            im.src = url;
+          };
+          reader.readAsText(file);
+        });
+      }
+
+      function readAsDataUri(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("That file couldn't be read."));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function showLogo(dataUri, name) {
+        logoDataUri = dataUri;
+        logoThumb.src = dataUri;
+        logoThumb.classList.add("show");
+        logoClear.classList.add("show");
+        logoTxt.innerHTML = "<b>" + name.replace(/[<>&]/g, "") + "</b><br />Click to replace";
+      }
+
+      function resetLogo() {
+        logoDataUri = null;
+        logoInput.value = "";
+        logoThumb.classList.remove("show");
+        logoThumb.removeAttribute("src");
+        logoClear.classList.remove("show");
+        logoTxt.innerHTML = "<b>Upload your logo</b><br />SVG, PNG, JPG or WEBP — up to 2 MB";
+      }
+
+      async function handleLogoFile(file) {
+        if (!file) return;
+        errorEl.textContent = "";
+        const isSvg = file.type === "image/svg+xml" || /\.svg$/i.test(file.name);
+        if (!isSvg && file.size > MAX_LOGO_BYTES) {
+          errorEl.textContent = "That logo is over 2 MB — please use a smaller file.";
+          return;
+        }
+        try {
+          const uri = isSvg ? await svgToPng(file) : await readAsDataUri(file);
+          // A dense SVG can rasterise into something huge; check the result too.
+          if (uri.length * 0.75 > MAX_LOGO_BYTES) {
+            errorEl.textContent = "That logo is too detailed to convert — please upload a PNG under 2 MB.";
+            return;
+          }
+          showLogo(uri, file.name);
+        } catch (err) {
+          errorEl.textContent = err.message;
+        }
+      }
+
+      logoInput.addEventListener("change", () => handleLogoFile(logoInput.files[0]));
+
+      logoClear.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        resetLogo();
+      });
+
+      ["dragenter", "dragover"].forEach((ev) =>
+        logoDrop.addEventListener(ev, (e) => { e.preventDefault(); logoDrop.classList.add("dragover"); })
+      );
+      ["dragleave", "drop"].forEach((ev) =>
+        logoDrop.addEventListener(ev, (e) => { e.preventDefault(); logoDrop.classList.remove("dragover"); })
+      );
+      logoDrop.addEventListener("drop", (e) => handleLogoFile(e.dataTransfer?.files?.[0]));
+
       async function generate() {
         const data = linkInput.value.trim();
         errorEl.textContent = "";
@@ -472,7 +657,13 @@
           const res = await fetch("/api/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ link: data, fill: fill.value, back: back.value }),
+            body: JSON.stringify({
+              link: data,
+              fill: fill.value,
+              back: back.value,
+              preset: preset,
+              logo: logoDataUri,
+            }),
           });
           const json = await res.json();
           if (!res.ok) throw new Error(json.error || "Something went wrong.");
