@@ -113,6 +113,76 @@
 
       label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 8px; }
 
+      .modes { display: flex; gap: 6px; padding: 5px; margin: 0 0 22px;
+               background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 13px; }
+      .modes button {
+        flex: 1 1 0; padding: 10px 12px; font: inherit; font-size: 14px; font-weight: 700;
+        color: var(--muted); background: none; border: 0; border-radius: 9px; cursor: pointer;
+        transition: all .18s ease;
+      }
+      .modes button:hover { color: var(--text); }
+      .modes button[aria-selected="true"] { color: #fff; background: linear-gradient(120deg, var(--accent), #5b8cff); }
+
+      .mode-panel { display: none; }
+      .mode-panel.active { display: block; }
+
+      .cam-actions { display: flex; gap: 10px; margin-top: 10px; }
+      .cam-actions button {
+        flex: 1 1 0; padding: 10px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+        color: var(--text); background: rgba(255,255,255,0.06);
+        border: 1px solid var(--border); border-radius: 10px; transition: all .18s ease;
+      }
+      .cam-actions button:hover { border-color: var(--accent); background: rgba(124,92,255,0.12); }
+      .cam-actions button[disabled] { opacity: .45; cursor: not-allowed; }
+
+      .cam-stage { display: none; margin-top: 12px; position: relative; }
+      .cam-stage.show { display: block; }
+      .cam-stage video { width: 100%; border-radius: 12px; display: block; background: #000; transform: scaleX(-1); }
+
+      .photo-preview { display: none; margin-top: 12px; position: relative; }
+      .photo-preview.show { display: block; }
+      .photo-preview img { width: 100%; border-radius: 12px; display: block; }
+      .photo-preview .drop-hint { position: absolute; inset: auto 8px 8px auto; }
+
+      .toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+      .toggle-row input { width: 16px; height: 16px; accent-color: var(--accent); }
+      .toggle-row label { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; }
+
+      .notice { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin-top: 12px;
+                padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.04);
+                border: 1px solid var(--border); }
+      .notice b { color: var(--text); }
+
+      .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+      .presets button {
+        flex: 1 1 auto; min-width: 76px; padding: 9px 12px; font: inherit; font-size: 13px; font-weight: 600;
+        color: var(--muted); background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+        border-radius: 10px; cursor: pointer; transition: all .18s ease;
+      }
+      .presets button:hover { color: var(--text); border-color: rgba(255,255,255,0.28); }
+      .presets button[aria-pressed="true"] { color: #fff; background: linear-gradient(120deg, var(--accent), #5b8cff); border-color: transparent; }
+
+      .logo-drop {
+        display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+        border: 1px dashed var(--border); border-radius: 12px; cursor: pointer;
+        background: rgba(255,255,255,0.03); transition: border-color .18s ease, background .18s ease;
+      }
+      .logo-drop:hover, .logo-drop.dragover { border-color: var(--accent); background: rgba(124,92,255,0.08); }
+      .logo-drop input[type="file"] { display: none; }
+      .logo-drop .thumb {
+        width: 40px; height: 40px; border-radius: 8px; flex: 0 0 auto; background: #fff;
+        object-fit: contain; display: none; padding: 3px;
+      }
+      .logo-drop .thumb.show { display: block; }
+      .logo-drop .txt { font-size: 13px; color: var(--muted); line-height: 1.4; }
+      .logo-drop .txt b { color: var(--text); font-weight: 600; }
+      .logo-clear {
+        margin-left: auto; flex: 0 0 auto; border: 0; background: none; color: var(--muted);
+        font: inherit; font-size: 18px; cursor: pointer; padding: 0 4px; display: none;
+      }
+      .logo-clear.show { display: block; }
+      .logo-clear:hover { color: #ff8095; }
+
       .field { margin-bottom: 18px; }
 
       input[type="text"] {
@@ -311,28 +381,97 @@
         <h1>Generate beautiful QR codes</h1>
         <p class="sub">Paste any link or text and get a crisp, high-resolution QR code in an instant — customise the colours to match your brand.</p>
 
+        <div class="modes" id="modes" role="tablist" aria-label="QR code mode">
+          <button type="button" data-mode="plain" role="tab" aria-selected="true">Plain QR</button>
+          <button type="button" data-mode="link" role="tab" aria-selected="false">Logo QR</button>
+          <button type="button" data-mode="photo" role="tab" aria-selected="false">Photo QR</button>
+        </div>
+
         <form id="qr-form" autocomplete="off">
           <div class="field">
             <label for="link">Link or text</label>
             <input type="text" id="link" name="link" placeholder="https://your-link.com" value="{{ link or '' }}" />
           </div>
 
-          <div class="row">
-            <div class="field">
-              <label>Foreground</label>
-              <div class="color-field">
-                <input type="color" id="fill" value="#111111" />
-                <span id="fill-label">#111111</span>
+          <div id="shared-colours">
+            <div class="row">
+              <div class="field">
+                <label>Foreground</label>
+                <div class="color-field">
+                  <input type="color" id="fill" value="#111111" />
+                  <span id="fill-label">#111111</span>
+                </div>
               </div>
-            </div>
-            <div class="field">
-              <label>Background</label>
-              <div class="color-field">
-                <input type="color" id="back" value="#ffffff" />
-                <span id="back-label">#ffffff</span>
+              <div class="field">
+                <label>Background</label>
+                <div class="color-field">
+                  <input type="color" id="back" value="#ffffff" />
+                  <span id="back-label">#ffffff</span>
+                </div>
               </div>
             </div>
           </div>
+
+          <div class="mode-panel active" id="panel-plain">
+            <div class="notice">
+              <b>A plain, classic QR code.</b> Square modules, no logo and no
+              picture — the most robust thing this makes. Best when the code has
+              to survive a small print, a bad camera or a long distance.
+            </div>
+          </div>
+
+          <div class="mode-panel" id="panel-link">
+          <div class="field">
+            <label>Style</label>
+            <div class="presets" id="presets" role="group" aria-label="QR code style">
+              {% for p in presets %}
+              <button type="button" data-preset="{{ p.id }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ p.label }}</button>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="logo">Logo <span style="font-weight:400">— optional</span></label>
+            <label class="logo-drop" id="logo-drop" for="logo">
+              <input type="file" id="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+              <img class="thumb" id="logo-thumb" alt="" />
+              <span class="txt" id="logo-txt"><b>Upload your logo</b><br />SVG, PNG, JPG or WEBP — up to 2 MB</span>
+              <button type="button" class="logo-clear" id="logo-clear" title="Remove logo" aria-label="Remove logo">×</button>
+            </label>
+          </div>
+
+          </div><!-- /panel-link -->
+
+          <div class="mode-panel" id="panel-photo">
+            <div class="field">
+              <label>Photo</label>
+              <label class="logo-drop" id="photo-drop" for="photo">
+                <input type="file" id="photo" accept="image/png,image/jpeg,image/webp" />
+                <span class="txt" id="photo-txt"><b>Upload a photo</b><br />Or use your camera — PNG, JPG or WEBP</span>
+              </label>
+              <div class="cam-actions">
+                <button type="button" id="cam-start">📷 Use camera</button>
+                <button type="button" id="cam-shoot" disabled>Capture</button>
+                <button type="button" id="cam-stop" disabled>Cancel</button>
+              </div>
+              <div class="cam-stage" id="cam-stage"><video id="cam-video" playsinline muted></video></div>
+              <div class="photo-preview" id="photo-preview"><img id="photo-img" alt="Selected photo" /></div>
+            </div>
+
+            <div class="toggle-row">
+              <input type="checkbox" id="colorized" />
+              <label for="colorized">Keep the photo's colours</label>
+            </div>
+
+            <div class="notice" id="len-hint"></div>
+
+            <div class="notice">
+              <b>Photo QR codes are artistic codes.</b> The picture becomes the code
+              itself, so they are more delicate than the logo styles — every one is
+              checked before you get it, but scan it yourself before you print a run.
+              Photos with a clear subject and strong light and shade work best.
+            </div>
+          </div><!-- /panel-photo -->
 
           <button type="submit" class="primary" id="submit-btn">Generate QR Code</button>
           <div class="error" id="error"></div>
@@ -446,6 +585,20 @@
 
     <script>
       const form = document.getElementById("qr-form");
+      const logoInput = document.getElementById("logo");
+      const logoDrop = document.getElementById("logo-drop");
+      const logoThumb = document.getElementById("logo-thumb");
+      const logoTxt = document.getElementById("logo-txt");
+      const logoClear = document.getElementById("logo-clear");
+      const presetsEl = document.getElementById("presets");
+
+      const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+      const RASTER_PX = 1024; // plenty for the largest QR we render
+      let logoDataUri = null;
+      let photoDataUri = null;
+      let mode = "plain";
+      let stream = null;
+      let preset = presetsEl?.querySelector("button")?.dataset.preset || "classic";
       const linkInput = document.getElementById("link");
       const fill = document.getElementById("fill");
       const back = document.getElementById("back");
@@ -460,19 +613,300 @@
       fill.addEventListener("input", () => (document.getElementById("fill-label").textContent = fill.value));
       back.addEventListener("input", () => (document.getElementById("back-label").textContent = back.value));
 
+      // ---- mode switching -------------------------------------------------
+      const modesEl = document.getElementById("modes");
+      const panels = {
+        plain: document.getElementById("panel-plain"),
+        link: document.getElementById("panel-link"),
+        photo: document.getElementById("panel-photo"),
+      };
+      const sharedColours = document.getElementById("shared-colours");
+      const SUBMIT_LABEL = { plain: "Generate QR Code", link: "Generate QR Code", photo: "Build Photo QR" };
+
+      modesEl.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-mode]");
+        if (!btn) return;
+        mode = btn.dataset.mode;
+        modesEl.querySelectorAll("button").forEach((b) =>
+          b.setAttribute("aria-selected", String(b === btn))
+        );
+        Object.entries(panels).forEach(([k, el]) => el.classList.toggle("active", k === mode));
+        // Colours apply to both plain and logo codes; a photo code takes its
+        // tones from the picture itself.
+        sharedColours.style.display = mode === "photo" ? "none" : "";
+        submitBtn.textContent = SUBMIT_LABEL[mode];
+        errorEl.textContent = "";
+        if (mode !== "photo") stopCamera();
+      });
+
+      // ---- camera ---------------------------------------------------------
+      const camStart = document.getElementById("cam-start");
+      const camShoot = document.getElementById("cam-shoot");
+      const camStop = document.getElementById("cam-stop");
+      const camStage = document.getElementById("cam-stage");
+      const camVideo = document.getElementById("cam-video");
+      const photoInput = document.getElementById("photo");
+      const photoPreview = document.getElementById("photo-preview");
+      const photoImg = document.getElementById("photo-img");
+      const photoTxt = document.getElementById("photo-txt");
+
+      function stopCamera() {
+        if (stream) stream.getTracks().forEach((t) => t.stop());
+        stream = null;
+        camStage.classList.remove("show");
+        camShoot.disabled = true;
+        camStop.disabled = true;
+        camStart.disabled = false;
+      }
+
+      camStart.addEventListener("click", async () => {
+        errorEl.textContent = "";
+        // Phones give a better experience through the native camera UI; the
+        // capture attribute opens it directly. getUserMedia covers desktop.
+        const isTouch = window.matchMedia("(pointer: coarse)").matches;
+        if (isTouch || !navigator.mediaDevices?.getUserMedia) {
+          photoInput.setAttribute("capture", "environment");
+          photoInput.click();
+          photoInput.removeAttribute("capture");
+          return;
+        }
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 1280 } },
+            audio: false,
+          });
+          camVideo.srcObject = stream;
+          await camVideo.play();
+          camStage.classList.add("show");
+          camStart.disabled = true;
+          camShoot.disabled = false;
+          camStop.disabled = false;
+        } catch (err) {
+          stopCamera();
+          errorEl.textContent =
+            err && err.name === "NotAllowedError"
+              ? "Camera permission was denied — you can upload a photo instead."
+              : "Couldn't open the camera — you can upload a photo instead.";
+        }
+      });
+
+      camShoot.addEventListener("click", () => {
+        if (!stream) return;
+        // Crop to a centred square so the framing matches the QR's shape.
+        const w = camVideo.videoWidth, h = camVideo.videoHeight;
+        const side = Math.min(w, h);
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = Math.min(side, 1200);
+        const ctx = canvas.getContext("2d");
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1); // undo the mirrored preview
+        ctx.drawImage(camVideo, (w - side) / 2, (h - side) / 2, side, side, 0, 0, canvas.width, canvas.height);
+        setPhoto(canvas.toDataURL("image/png"), "camera photo");
+        stopCamera();
+      });
+
+      camStop.addEventListener("click", stopCamera);
+
+      // Alignment squares are mandatory, but their count is a step function of
+      // the QR version: one up to 57 characters, six beyond it. Six land right
+      // across the middle of the picture, so warn before generating.
+      const PHOTO_CLEAN_LIMIT = 57;
+      const lenHint = document.getElementById("len-hint");
+
+      function updateLenHint() {
+        if (!lenHint) return;
+        const n = linkInput.value.trim().length;
+        if (n === 0) {
+          lenHint.innerHTML =
+            "<b>Keep the link short.</b> Up to " + PHOTO_CLEAN_LIMIT +
+            " characters the code carries just one small alignment square. Longer links jump to six, scattered across the middle of the picture.";
+        } else if (n <= PHOTO_CLEAN_LIMIT) {
+          lenHint.innerHTML =
+            "<b>" + n + "/" + PHOTO_CLEAN_LIMIT + " characters.</b> This link keeps the picture clear — one small alignment square only.";
+        } else {
+          lenHint.innerHTML =
+            "<b>" + n + " characters — " + (n - PHOTO_CLEAN_LIMIT) +
+            " over.</b> This adds six alignment squares across the middle of the picture. A link shortener would keep your face clear.";
+        }
+      }
+
+      linkInput.addEventListener("input", updateLenHint);
+      updateLenHint();
+
+      function setPhoto(uri, name) {
+        photoDataUri = uri;
+        photoImg.src = uri;
+        photoPreview.classList.add("show");
+        photoTxt.innerHTML = "<b>" + name.replace(/[<>&]/g, "") + "</b><br />Click to replace";
+      }
+
+      photoInput.addEventListener("change", async () => {
+        const file = photoInput.files[0];
+        if (!file) return;
+        errorEl.textContent = "";
+        if (file.size > MAX_LOGO_BYTES) {
+          errorEl.textContent = "That photo is over 2 MB — please use a smaller file.";
+          return;
+        }
+        try {
+          setPhoto(await readAsDataUri(file), file.name);
+        } catch (err) {
+          errorEl.textContent = err.message;
+        }
+      });
+
+      presetsEl?.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-preset]");
+        if (!btn) return;
+        preset = btn.dataset.preset;
+        presetsEl.querySelectorAll("button").forEach((b) =>
+          b.setAttribute("aria-pressed", String(b === btn))
+        );
+      });
+
+      /**
+       * Rasterise an SVG in the browser.
+       * Two reasons this happens client-side rather than on the server:
+       * Vercel's Python runtime has no Cairo, so it cannot rasterise SVG at all;
+       * and an SVG is active XML, so keeping the parse off the server avoids
+       * handing it script/XXE content. Loading via <img> also means any script
+       * inside the file is inert here.
+       */
+      function svgToPng(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(new Error("That SVG couldn't be read."));
+          reader.onload = () => {
+            let markup = String(reader.result);
+            // Many logo SVGs carry only a viewBox; canvas needs real dimensions.
+            try {
+              const doc = new DOMParser().parseFromString(markup, "image/svg+xml");
+              const svg = doc.documentElement;
+              if (svg.nodeName !== "svg") throw new Error("not svg");
+              if (!svg.getAttribute("width") || !svg.getAttribute("height")) {
+                const vb = (svg.getAttribute("viewBox") || "").split(/[\s,]+/);
+                const w = parseFloat(vb[2]) || RASTER_PX;
+                const h = parseFloat(vb[3]) || RASTER_PX;
+                svg.setAttribute("width", w);
+                svg.setAttribute("height", h);
+              }
+              markup = new XMLSerializer().serializeToString(svg);
+            } catch {
+              return reject(new Error("That SVG couldn't be parsed."));
+            }
+
+            const url = URL.createObjectURL(new Blob([markup], { type: "image/svg+xml" }));
+            const im = new Image();
+            im.onload = () => {
+              const scale = RASTER_PX / Math.max(im.width || 1, im.height || 1);
+              const canvas = document.createElement("canvas");
+              canvas.width = Math.max(1, Math.round((im.width || RASTER_PX) * scale));
+              canvas.height = Math.max(1, Math.round((im.height || RASTER_PX) * scale));
+              canvas.getContext("2d").drawImage(im, 0, 0, canvas.width, canvas.height);
+              URL.revokeObjectURL(url);
+              try {
+                resolve(canvas.toDataURL("image/png"));
+              } catch {
+                reject(new Error("That SVG links to external images, so it can't be converted. Export it as a PNG instead."));
+              }
+            };
+            im.onerror = () => { URL.revokeObjectURL(url); reject(new Error("That SVG couldn't be rendered.")); };
+            im.src = url;
+          };
+          reader.readAsText(file);
+        });
+      }
+
+      function readAsDataUri(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("That file couldn't be read."));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function showLogo(dataUri, name) {
+        logoDataUri = dataUri;
+        logoThumb.src = dataUri;
+        logoThumb.classList.add("show");
+        logoClear.classList.add("show");
+        logoTxt.innerHTML = "<b>" + name.replace(/[<>&]/g, "") + "</b><br />Click to replace";
+      }
+
+      function resetLogo() {
+        logoDataUri = null;
+        logoInput.value = "";
+        logoThumb.classList.remove("show");
+        logoThumb.removeAttribute("src");
+        logoClear.classList.remove("show");
+        logoTxt.innerHTML = "<b>Upload your logo</b><br />SVG, PNG, JPG or WEBP — up to 2 MB";
+      }
+
+      async function handleLogoFile(file) {
+        if (!file) return;
+        errorEl.textContent = "";
+        const isSvg = file.type === "image/svg+xml" || /\.svg$/i.test(file.name);
+        if (!isSvg && file.size > MAX_LOGO_BYTES) {
+          errorEl.textContent = "That logo is over 2 MB — please use a smaller file.";
+          return;
+        }
+        try {
+          const uri = isSvg ? await svgToPng(file) : await readAsDataUri(file);
+          // A dense SVG can rasterise into something huge; check the result too.
+          if (uri.length * 0.75 > MAX_LOGO_BYTES) {
+            errorEl.textContent = "That logo is too detailed to convert — please upload a PNG under 2 MB.";
+            return;
+          }
+          showLogo(uri, file.name);
+        } catch (err) {
+          errorEl.textContent = err.message;
+        }
+      }
+
+      logoInput.addEventListener("change", () => handleLogoFile(logoInput.files[0]));
+
+      logoClear.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        resetLogo();
+      });
+
+      ["dragenter", "dragover"].forEach((ev) =>
+        logoDrop.addEventListener(ev, (e) => { e.preventDefault(); logoDrop.classList.add("dragover"); })
+      );
+      ["dragleave", "drop"].forEach((ev) =>
+        logoDrop.addEventListener(ev, (e) => { e.preventDefault(); logoDrop.classList.remove("dragover"); })
+      );
+      logoDrop.addEventListener("drop", (e) => handleLogoFile(e.dataTransfer?.files?.[0]));
+
       async function generate() {
         const data = linkInput.value.trim();
         errorEl.textContent = "";
         if (!data) { errorEl.textContent = "Please enter a link or some text."; return; }
+        if (mode === "photo" && !photoDataUri) {
+          errorEl.textContent = "Add a photo or take one with your camera first.";
+          return;
+        }
 
         submitBtn.disabled = true;
         spinner.classList.add("show");
 
         try {
-          const res = await fetch("/api/generate", {
+          const endpoint = mode === "photo" ? "/api/photo" : "/api/generate";
+          let body;
+          if (mode === "photo") {
+            body = { link: data, photo: photoDataUri, colorized: document.getElementById("colorized").checked };
+          } else if (mode === "plain") {
+            // Deliberately ignores the style picker and any uploaded logo.
+            body = { link: data, fill: fill.value, back: back.value, preset: "classic", logo: null };
+          } else {
+            body = { link: data, fill: fill.value, back: back.value, preset: preset, logo: logoDataUri };
+          }
+          const res = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ link: data, fill: fill.value, back: back.value }),
+            body: JSON.stringify(body),
           });
           const json = await res.json();
           if (!res.ok) throw new Error(json.error || "Something went wrong.");
