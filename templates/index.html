@@ -453,6 +453,8 @@
               <label for="colorized">Keep the photo's colours</label>
             </div>
 
+            <div class="notice" id="len-hint"></div>
+
             <div class="notice">
               <b>Photo QR codes are artistic codes.</b> The picture becomes the code
               itself, so they are more delicate than the logo styles — every one is
@@ -685,6 +687,32 @@
       });
 
       camStop.addEventListener("click", stopCamera);
+
+      // Alignment squares are mandatory, but their count is a step function of
+      // the QR version: one up to 57 characters, six beyond it. Six land right
+      // across the middle of the picture, so warn before generating.
+      const PHOTO_CLEAN_LIMIT = 57;
+      const lenHint = document.getElementById("len-hint");
+
+      function updateLenHint() {
+        if (!lenHint) return;
+        const n = linkInput.value.trim().length;
+        if (n === 0) {
+          lenHint.innerHTML =
+            "<b>Keep the link short.</b> Up to " + PHOTO_CLEAN_LIMIT +
+            " characters the code carries just one small alignment square. Longer links jump to six, scattered across the middle of the picture.";
+        } else if (n <= PHOTO_CLEAN_LIMIT) {
+          lenHint.innerHTML =
+            "<b>" + n + "/" + PHOTO_CLEAN_LIMIT + " characters.</b> This link keeps the picture clear — one small alignment square only.";
+        } else {
+          lenHint.innerHTML =
+            "<b>" + n + " characters — " + (n - PHOTO_CLEAN_LIMIT) +
+            " over.</b> This adds six alignment squares across the middle of the picture. A link shortener would keep your face clear.";
+        }
+      }
+
+      linkInput.addEventListener("input", updateLenHint);
+      updateLenHint();
 
       function setPhoto(uri, name) {
         photoDataUri = uri;

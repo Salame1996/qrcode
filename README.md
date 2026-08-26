@@ -38,6 +38,29 @@ happen at the encoding level, choosing the mask pattern and using the padding re
 so the modules fall where the image wants them. `amzqr` does that, and it is pure
 Python on top of Pillow, so it deploys to Vercel without native dependencies.
 
+### Alignment squares and link length
+
+The small solid squares inside a code are alignment patterns. They are mandatory,
+but how many appear is a step function of the QR version — and six of them land
+right across the middle of the picture, which is where a face is:
+
+| version | alignment squares |
+| ------- | ----------------- |
+| 1       | 0 (too little capacity to be useful) |
+| 2-6     | 1 |
+| 7-13    | 6 |
+| 14+     | 13 |
+
+So the version is chosen to stay on the one-square side of that cliff rather than
+to maximise modules for image detail. Version 6 is the sweet spot: 41 modules of
+detail with a single square tucked into a corner.
+
+Version 6 holds **57 characters** at error-correction level H — measured, not read
+off the bit-capacity table, which overstates it because byte mode also spends bits
+on the mode indicator and length field. Past 57 characters the code steps up to
+version 7 and six squares, so the generator shows a live character count and
+suggests a link shortener before you commit.
+
 **These codes are more fragile than the logo presets, and the difference is real:**
 OpenCV's detector cannot read them at all, while ZXing — the engine behind Android
 and most scanner apps — reads them reliably. Every generated code is therefore

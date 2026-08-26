@@ -130,7 +130,7 @@ def photo_api():
 
     try:
         photo_bytes = _decode_upload(payload.get("photo"), "photo")
-        image, verified = photoqr.render(
+        image, verified, blocks = photoqr.render(
             data,
             photo_bytes,
             colorized=payload.get("colorized"),
@@ -143,7 +143,9 @@ def photo_api():
         app.logger.exception("Photo QR generation failed")
         return jsonify({"error": "Could not build a photo QR from that image."}), 400
 
-    return jsonify({"image": image, "data": data, "verified": verified})
+    return jsonify(
+        {"image": image, "data": data, "verified": verified, "alignment_blocks": blocks}
+    )
 
 
 @app.route("/about", methods=["GET"])

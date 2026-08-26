@@ -42,23 +42,46 @@ except Exception:  # pragma: no cover
 # amzqr renders fairly small; upscaling with NEAREST is lossless for a pattern
 # of hard-edged blocks and gives people a file worth downloading.
 TARGET_PX = 1080
-MIN_VERSION = 5
-MAX_VERSION = 20
+
+# Alignment patterns are the small solid squares scattered through a code. They
+# are mandatory, but how many you get is a step function of the version:
+#
+#   version 1     0 patterns   (holds too little data to be useful here)
+#   version 2-6   1 pattern
+#   version 7-13  6 patterns
+#   version 14+  13 patterns
+#
+# Six of them land right across the middle of the picture, which is exactly
+# where a face is. So rather than maximising modules for image detail, aim for
+# version 6: the most detail (41 modules) still on the one-pattern side of the
+# cliff. Beyond its capacity the jump to six is unavoidable.
+PREFERRED_VERSION = 6
+# Measured, not derived: at 58 bytes amzqr steps up to version 7 and the count
+# jumps from one block to six. The raw bit-capacity table overstates this,
+# because byte mode also spends bits on the mode indicator and length field.
+PREFERRED_CAPACITY = 57
 
 # A photo needs real tonal spread to survive being reduced to black and white.
 MIN_STDDEV = 18.0
 
 
 def _pick_version(data):
-    """More modules means more room for the picture, within what the data allows."""
-    length = len(data.encode("utf-8"))
-    if length <= 40:
-        return 8
-    if length <= 90:
-        return 12
-    if length <= 160:
-        return 16
-    return MAX_VERSION
+    """Lowest version that keeps alignment patterns out of the picture.
+
+    amzqr treats this as a floor and raises it if the data will not fit, so
+    anything past version 6's capacity sizes itself up automatically.
+    """
+    if len(data.encode("utf-8")) <= PREFERRED_CAPACITY:
+        return PREFERRED_VERSION
+    return 1
+
+
+def alignment_blocks(version):
+    """How many alignment squares a given version puts on the picture."""
+    from qrcode.util import pattern_position
+
+    positions = pattern_position(version)
+    return len(positions) ** 2 - 3 if positions else 0
 
 
 def check_photo_suitability(image):
@@ -120,7 +143,7 @@ def render(data, photo_bytes, colorized=False, contrast=1.5, brightness=1.1):
         flat.save(source)
 
         try:
-            _, _, produced = amzqr.run(
+            used_version, _, produced = amzqr.run(
                 data,
                 version=_pick_version(data),
                 level="H",
@@ -143,6 +166,7 @@ def render(data, photo_bytes, colorized=False, contrast=1.5, brightness=1.1):
         factor = -(-TARGET_PX // image.width)
         image = image.resize((image.width * factor, image.height * factor), Image.NEAREST)
 
+    blocks = alignment_blocks(used_version)
     verified = verify(image, data)
     if verified is False:
         raise QRError(
@@ -154,4 +178,4 @@ def render(data, photo_bytes, colorized=False, contrast=1.5, brightness=1.1):
     image.convert("RGB").save(buffer, format="PNG", optimize=True)
     buffer.seek(0)
     uri = "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
-    return uri, verified
+    return uri, verified, blocks
