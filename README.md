@@ -24,6 +24,28 @@ test renders with OpenCV at sizes from 600px down to 180px:
 The API also rejects colour pairs that cannot scan — under 3:1 contrast, or a
 foreground lighter than the background (inverted codes fail on many phone cameras).
 
+## Photo QR codes (halftone)
+
+A second mode where the photo *becomes* the code rather than sitting on top of it —
+upload an image or take one with the camera (`getUserMedia` on desktop, the native
+camera via the `capture` attribute on phones).
+
+This cannot be done by compositing. Building the module pattern by hand and then
+flipping modules toward the picture breaks the code at roughly 10% of modules
+flipped, because each flip damages a different Reed-Solomon codeword — measured
+image fidelity tops out around 0.34, a faint ghost rather than a picture. It has to
+happen at the encoding level, choosing the mask pattern and using the padding region
+so the modules fall where the image wants them. `amzqr` does that, and it is pure
+Python on top of Pillow, so it deploys to Vercel without native dependencies.
+
+**These codes are more fragile than the logo presets, and the difference is real:**
+OpenCV's detector cannot read them at all, while ZXing — the engine behind Android
+and most scanner apps — reads them reliably. Every generated code is therefore
+verified with ZXing before it is returned, and one that fails is rejected rather
+than handed over. The UI says plainly that these are artistic codes worth testing
+before a print run. Photos that are too flat to survive being reduced to two tones
+are rejected up front.
+
 ### SVG handling
 
 SVGs are rasterised to PNG **in the browser** before upload, for two reasons: Vercel's
@@ -53,7 +75,8 @@ Just import the repo on [vercel.com](https://vercel.com) (or run `vercel`) — n
 
 ## Tech
 
-- Flask (server + JSON API at `POST /api/generate`)
+- Flask (server + JSON APIs at `POST /api/generate` and `POST /api/photo`)
 - `qrcode` + `Pillow` for image generation; styling and logo compositing in `qrstyle.py`
+- `amzqr` for halftone photo codes and `zxing-cpp` to verify them, both in `photoqr.py`
 - Vanilla HTML/CSS/JS front end with live preview, style presets, colour controls and
   drag-and-drop logo upload

@@ -4,6 +4,7 @@ import os
 
 from flask import Flask, render_template, request, jsonify, Response, redirect
 
+import photoqr
 import qrstyle
 from qrstyle import QRError
 
@@ -60,6 +61,17 @@ def home():
     return render_template("index.html", presets=qrstyle.preset_list())
 
 
+def _decode_upload(field, what="logo"):
+    """Pull raw bytes out of a data URI sent by the browser."""
+    if not field:
+        return None
+    try:
+        _, _, encoded = str(field).partition(",")
+        return base64.b64decode(encoded or "", validate=True)
+    except (binascii.Error, ValueError):
+        raise QRError(f"That {what} couldn't be read — try a PNG.")
+
+
 @app.route("/api/generate", methods=["POST"])
 def generate_api():
     """Smooth path: return the QR as JSON so the page never reloads."""
@@ -68,16 +80,12 @@ def generate_api():
     if not data:
         return jsonify({"error": "Please enter a link or some text."}), 400
 
-    logo_bytes = None
-    logo_field = payload.get("logo")
-    if logo_field:
-        try:
-            # The client sends a data URI; SVGs are rasterised in the browser so
-            # the server only ever handles flat pixels.
-            _, _, encoded = str(logo_field).partition(",")
-            logo_bytes = base64.b64decode(encoded or "", validate=True)
-        except (binascii.Error, ValueError):
-            return jsonify({"error": "That logo couldn't be read — try a PNG."}), 400
+    # The client sends a data URI; SVGs are rasterised in the browser so the
+    # server only ever handles flat pixels.
+    try:
+        logo_bytes = _decode_upload(payload.get("logo"), "logo")
+    except QRError as exc:
+        return jsonify({"error": str(exc)}), 400
 
     try:
         image = qrstyle.render(
@@ -110,6 +118,32 @@ def generate_form():
     return render_template(
         "index.html", data=image, link=data, error=error, presets=qrstyle.preset_list()
     )
+
+
+@app.route("/api/photo", methods=["POST"])
+def photo_api():
+    """Halftone mode: the photo itself becomes the QR pattern."""
+    payload = request.get_json(silent=True) or request.form
+    data = (payload.get("link") or "").strip()
+    if not data:
+        return jsonify({"error": "Please enter a link or some text."}), 400
+
+    try:
+        photo_bytes = _decode_upload(payload.get("photo"), "photo")
+        image, verified = photoqr.render(
+            data,
+            photo_bytes,
+            colorized=payload.get("colorized"),
+            contrast=payload.get("contrast", 1.5),
+            brightness=payload.get("brightness", 1.1),
+        )
+    except QRError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception:
+        app.logger.exception("Photo QR generation failed")
+        return jsonify({"error": "Could not build a photo QR from that image."}), 400
+
+    return jsonify({"image": image, "data": data, "verified": verified})
 
 
 @app.route("/about", methods=["GET"])

@@ -113,6 +113,46 @@
 
       label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 8px; }
 
+      .modes { display: flex; gap: 6px; padding: 5px; margin: 0 0 22px;
+               background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 13px; }
+      .modes button {
+        flex: 1 1 0; padding: 10px 12px; font: inherit; font-size: 14px; font-weight: 700;
+        color: var(--muted); background: none; border: 0; border-radius: 9px; cursor: pointer;
+        transition: all .18s ease;
+      }
+      .modes button:hover { color: var(--text); }
+      .modes button[aria-selected="true"] { color: #fff; background: linear-gradient(120deg, var(--accent), #5b8cff); }
+
+      .mode-panel { display: none; }
+      .mode-panel.active { display: block; }
+
+      .cam-actions { display: flex; gap: 10px; margin-top: 10px; }
+      .cam-actions button {
+        flex: 1 1 0; padding: 10px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+        color: var(--text); background: rgba(255,255,255,0.06);
+        border: 1px solid var(--border); border-radius: 10px; transition: all .18s ease;
+      }
+      .cam-actions button:hover { border-color: var(--accent); background: rgba(124,92,255,0.12); }
+      .cam-actions button[disabled] { opacity: .45; cursor: not-allowed; }
+
+      .cam-stage { display: none; margin-top: 12px; position: relative; }
+      .cam-stage.show { display: block; }
+      .cam-stage video { width: 100%; border-radius: 12px; display: block; background: #000; transform: scaleX(-1); }
+
+      .photo-preview { display: none; margin-top: 12px; position: relative; }
+      .photo-preview.show { display: block; }
+      .photo-preview img { width: 100%; border-radius: 12px; display: block; }
+      .photo-preview .drop-hint { position: absolute; inset: auto 8px 8px auto; }
+
+      .toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+      .toggle-row input { width: 16px; height: 16px; accent-color: var(--accent); }
+      .toggle-row label { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; }
+
+      .notice { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin-top: 12px;
+                padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.04);
+                border: 1px solid var(--border); }
+      .notice b { color: var(--text); }
+
       .presets { display: flex; flex-wrap: wrap; gap: 8px; }
       .presets button {
         flex: 1 1 auto; min-width: 76px; padding: 9px 12px; font: inherit; font-size: 13px; font-weight: 600;
@@ -341,11 +381,18 @@
         <h1>Generate beautiful QR codes</h1>
         <p class="sub">Paste any link or text and get a crisp, high-resolution QR code in an instant — customise the colours to match your brand.</p>
 
+        <div class="modes" id="modes" role="tablist" aria-label="QR code mode">
+          <button type="button" data-mode="link" role="tab" aria-selected="true">Logo QR</button>
+          <button type="button" data-mode="photo" role="tab" aria-selected="false">Photo QR</button>
+        </div>
+
         <form id="qr-form" autocomplete="off">
           <div class="field">
             <label for="link">Link or text</label>
             <input type="text" id="link" name="link" placeholder="https://your-link.com" value="{{ link or '' }}" />
           </div>
+
+          <div class="mode-panel active" id="panel-link">
 
           <div class="row">
             <div class="field">
@@ -382,6 +429,37 @@
               <button type="button" class="logo-clear" id="logo-clear" title="Remove logo" aria-label="Remove logo">×</button>
             </label>
           </div>
+
+          </div><!-- /panel-link -->
+
+          <div class="mode-panel" id="panel-photo">
+            <div class="field">
+              <label>Photo</label>
+              <label class="logo-drop" id="photo-drop" for="photo">
+                <input type="file" id="photo" accept="image/png,image/jpeg,image/webp" />
+                <span class="txt" id="photo-txt"><b>Upload a photo</b><br />Or use your camera — PNG, JPG or WEBP</span>
+              </label>
+              <div class="cam-actions">
+                <button type="button" id="cam-start">📷 Use camera</button>
+                <button type="button" id="cam-shoot" disabled>Capture</button>
+                <button type="button" id="cam-stop" disabled>Cancel</button>
+              </div>
+              <div class="cam-stage" id="cam-stage"><video id="cam-video" playsinline muted></video></div>
+              <div class="photo-preview" id="photo-preview"><img id="photo-img" alt="Selected photo" /></div>
+            </div>
+
+            <div class="toggle-row">
+              <input type="checkbox" id="colorized" />
+              <label for="colorized">Keep the photo's colours</label>
+            </div>
+
+            <div class="notice">
+              <b>Photo QR codes are artistic codes.</b> The picture becomes the code
+              itself, so they are more delicate than the logo styles — every one is
+              checked before you get it, but scan it yourself before you print a run.
+              Photos with a clear subject and strong light and shade work best.
+            </div>
+          </div><!-- /panel-photo -->
 
           <button type="submit" class="primary" id="submit-btn">Generate QR Code</button>
           <div class="error" id="error"></div>
@@ -505,6 +583,9 @@
       const MAX_LOGO_BYTES = 2 * 1024 * 1024;
       const RASTER_PX = 1024; // plenty for the largest QR we render
       let logoDataUri = null;
+      let photoDataUri = null;
+      let mode = "link";
+      let stream = null;
       let preset = presetsEl?.querySelector("button")?.dataset.preset || "classic";
       const linkInput = document.getElementById("link");
       const fill = document.getElementById("fill");
@@ -519,6 +600,113 @@
 
       fill.addEventListener("input", () => (document.getElementById("fill-label").textContent = fill.value));
       back.addEventListener("input", () => (document.getElementById("back-label").textContent = back.value));
+
+      // ---- mode switching -------------------------------------------------
+      const modesEl = document.getElementById("modes");
+      const panels = { link: document.getElementById("panel-link"), photo: document.getElementById("panel-photo") };
+
+      modesEl.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-mode]");
+        if (!btn) return;
+        mode = btn.dataset.mode;
+        modesEl.querySelectorAll("button").forEach((b) =>
+          b.setAttribute("aria-selected", String(b === btn))
+        );
+        Object.entries(panels).forEach(([k, el]) => el.classList.toggle("active", k === mode));
+        submitBtn.textContent = mode === "photo" ? "Build Photo QR" : "Generate QR Code";
+        errorEl.textContent = "";
+        if (mode !== "photo") stopCamera();
+      });
+
+      // ---- camera ---------------------------------------------------------
+      const camStart = document.getElementById("cam-start");
+      const camShoot = document.getElementById("cam-shoot");
+      const camStop = document.getElementById("cam-stop");
+      const camStage = document.getElementById("cam-stage");
+      const camVideo = document.getElementById("cam-video");
+      const photoInput = document.getElementById("photo");
+      const photoPreview = document.getElementById("photo-preview");
+      const photoImg = document.getElementById("photo-img");
+      const photoTxt = document.getElementById("photo-txt");
+
+      function stopCamera() {
+        if (stream) stream.getTracks().forEach((t) => t.stop());
+        stream = null;
+        camStage.classList.remove("show");
+        camShoot.disabled = true;
+        camStop.disabled = true;
+        camStart.disabled = false;
+      }
+
+      camStart.addEventListener("click", async () => {
+        errorEl.textContent = "";
+        // Phones give a better experience through the native camera UI; the
+        // capture attribute opens it directly. getUserMedia covers desktop.
+        const isTouch = window.matchMedia("(pointer: coarse)").matches;
+        if (isTouch || !navigator.mediaDevices?.getUserMedia) {
+          photoInput.setAttribute("capture", "environment");
+          photoInput.click();
+          photoInput.removeAttribute("capture");
+          return;
+        }
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 1280 } },
+            audio: false,
+          });
+          camVideo.srcObject = stream;
+          await camVideo.play();
+          camStage.classList.add("show");
+          camStart.disabled = true;
+          camShoot.disabled = false;
+          camStop.disabled = false;
+        } catch (err) {
+          stopCamera();
+          errorEl.textContent =
+            err && err.name === "NotAllowedError"
+              ? "Camera permission was denied — you can upload a photo instead."
+              : "Couldn't open the camera — you can upload a photo instead.";
+        }
+      });
+
+      camShoot.addEventListener("click", () => {
+        if (!stream) return;
+        // Crop to a centred square so the framing matches the QR's shape.
+        const w = camVideo.videoWidth, h = camVideo.videoHeight;
+        const side = Math.min(w, h);
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = Math.min(side, 1200);
+        const ctx = canvas.getContext("2d");
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1); // undo the mirrored preview
+        ctx.drawImage(camVideo, (w - side) / 2, (h - side) / 2, side, side, 0, 0, canvas.width, canvas.height);
+        setPhoto(canvas.toDataURL("image/png"), "camera photo");
+        stopCamera();
+      });
+
+      camStop.addEventListener("click", stopCamera);
+
+      function setPhoto(uri, name) {
+        photoDataUri = uri;
+        photoImg.src = uri;
+        photoPreview.classList.add("show");
+        photoTxt.innerHTML = "<b>" + name.replace(/[<>&]/g, "") + "</b><br />Click to replace";
+      }
+
+      photoInput.addEventListener("change", async () => {
+        const file = photoInput.files[0];
+        if (!file) return;
+        errorEl.textContent = "";
+        if (file.size > MAX_LOGO_BYTES) {
+          errorEl.textContent = "That photo is over 2 MB — please use a smaller file.";
+          return;
+        }
+        try {
+          setPhoto(await readAsDataUri(file), file.name);
+        } catch (err) {
+          errorEl.textContent = err.message;
+        }
+      });
 
       presetsEl?.addEventListener("click", (e) => {
         const btn = e.target.closest("button[data-preset]");
@@ -649,21 +837,24 @@
         const data = linkInput.value.trim();
         errorEl.textContent = "";
         if (!data) { errorEl.textContent = "Please enter a link or some text."; return; }
+        if (mode === "photo" && !photoDataUri) {
+          errorEl.textContent = "Add a photo or take one with your camera first.";
+          return;
+        }
 
         submitBtn.disabled = true;
         spinner.classList.add("show");
 
         try {
-          const res = await fetch("/api/generate", {
+          const endpoint = mode === "photo" ? "/api/photo" : "/api/generate";
+          const body =
+            mode === "photo"
+              ? { link: data, photo: photoDataUri, colorized: document.getElementById("colorized").checked }
+              : { link: data, fill: fill.value, back: back.value, preset: preset, logo: logoDataUri };
+          const res = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              link: data,
-              fill: fill.value,
-              back: back.value,
-              preset: preset,
-              logo: logoDataUri,
-            }),
+            body: JSON.stringify(body),
           });
           const json = await res.json();
           if (!res.ok) throw new Error(json.error || "Something went wrong.");

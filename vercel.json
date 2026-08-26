@@ -4,7 +4,7 @@
     {
       "src": "api/index.py",
       "use": "@vercel/python",
-      "config": { "includeFiles": ["templates/**", "main.py", "qrstyle.py"] }
+      "config": { "includeFiles": ["templates/**", "main.py", "qrstyle.py", "photoqr.py"] }
     }
   ],
   "routes": [
