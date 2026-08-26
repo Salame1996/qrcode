@@ -77,11 +77,20 @@ suggests a link shortener before you commit.
 
 **These codes are more fragile than the logo presets, and the difference is real:**
 OpenCV's detector cannot read them at all, while ZXing — the engine behind Android
-and most scanner apps — reads them reliably. Every generated code is therefore
-verified with ZXing before it is returned, and one that fails is rejected rather
-than handed over. The UI says plainly that these are artistic codes worth testing
-before a print run. Photos that are too flat to survive being reduced to two tones
-are rejected up front.
+and most scanner apps — reads them reliably.
+
+Where a decoder is available, every generated code is verified before it is
+returned and a failing one is rejected rather than handed over. `zxing-cpp` is a
+native wheel and does not install on every target — it is currently **not** in
+`requirements.txt` because the deploy target has no wheel for it — so
+verification is optional by design: `photoqr.verify()` returns `None` when no
+decoder is present, generation continues, and the API reports `verified: null`.
+
+The UI is driven by that field rather than assuming, so it never claims a code was
+checked when it was not: a verified code gets a confirmation, an unverified one
+gets a warning to scan it first. To turn verification back on, add `zxing-cpp` to
+`requirements.txt` on a target that has a wheel for it. Photos too flat to survive
+being reduced to two tones are rejected up front either way.
 
 ### SVG handling
 

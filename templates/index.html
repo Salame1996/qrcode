@@ -153,6 +153,12 @@
                 border: 1px solid var(--border); }
       .notice b { color: var(--text); }
 
+      .scan-status { display: none; margin: 0 0 12px; font-size: 12.5px; line-height: 1.5;
+                     padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border); }
+      .scan-status.show { display: block; }
+      .scan-status.ok { color: #7ee2b8; background: rgba(34,197,94,0.10); border-color: rgba(34,197,94,0.30); }
+      .scan-status.warn { color: #ffd48a; background: rgba(245,158,11,0.10); border-color: rgba(245,158,11,0.30); }
+
       .presets { display: flex; flex-wrap: wrap; gap: 8px; }
       .presets button {
         flex: 1 1 auto; min-width: 76px; padding: 9px 12px; font: inherit; font-size: 13px; font-weight: 600;
@@ -467,9 +473,9 @@
 
             <div class="notice">
               <b>Photo QR codes are artistic codes.</b> The picture becomes the code
-              itself, so they are more delicate than the logo styles — every one is
-              checked before you get it, but scan it yourself before you print a run.
-              Photos with a clear subject and strong light and shade work best.
+              itself, so they are more delicate than the logo styles. Always scan one
+              yourself before you print a run. Photos with a clear subject and strong
+              light and shade work best.
             </div>
           </div><!-- /panel-photo -->
 
@@ -490,6 +496,8 @@
           <img id="qr-img" src="{{ data or '' }}" alt="Generated QR code" class="{{ 'show' if data else '' }}" />
           <div class="spinner" id="spinner"><div></div></div>
         </div>
+
+        <div class="scan-status" id="scan-status"></div>
 
         <div class="actions">
           <a id="download" class="disabled" download="qrcode.png">⬇ Download</a>
@@ -609,6 +617,7 @@
       const errorEl = document.getElementById("error");
       const download = document.getElementById("download");
       const copyBtn = document.getElementById("copy");
+      const scanStatus = document.getElementById("scan-status");
 
       fill.addEventListener("input", () => (document.getElementById("fill-label").textContent = fill.value));
       back.addEventListener("input", () => (document.getElementById("back-label").textContent = back.value));
@@ -910,6 +919,21 @@
           });
           const json = await res.json();
           if (!res.ok) throw new Error(json.error || "Something went wrong.");
+
+          // Say what was actually checked. The server verifies photo codes only
+          // when a decoder is installed there; without one it reports null and
+          // we must not imply the code was validated.
+          scanStatus.className = "scan-status";
+          scanStatus.textContent = "";
+          if (mode === "photo") {
+            if (json.verified === true) {
+              scanStatus.textContent = "✓ Checked — this code decoded correctly here. Still worth a scan before a print run.";
+              scanStatus.classList.add("show", "ok");
+            } else {
+              scanStatus.textContent = "⚠ Not auto-checked on this server — scan it with your phone before you use it.";
+              scanStatus.classList.add("show", "warn");
+            }
+          }
 
           img.src = json.image;
           img.classList.remove("show");
